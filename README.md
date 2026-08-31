@@ -1,5 +1,3 @@
-# data_analyst_myportfolio
-
 # 📊 Portafolio de Data Analyst
 
 Repositorio de práctica y proyectos del plan de aprendizaje de 13 semanas para convertirme en Data Analyst Junior. Documento acá mi avance semana a semana, con código, archivos y notas de lo aprendido.
@@ -66,11 +64,6 @@ Repositorio de práctica y proyectos del plan de aprendizaje de 13 semanas para 
 
 ## 📂 Archivos en este repositorio
 
-| Archivo | Descripción |
-|---|---|
-| `practica_semana1_dia1.xlsx` | Tabla base con referencias absolutas |
-| *(archivo día 2-3)* | Fórmulas condicionales + XLOOKUP/BUSCARV |
-| *(archivo día 4-5)* | Tablas dinámicas + Power Query |
 
 ---
 
@@ -79,4 +72,15 @@ Repositorio de práctica y proyectos del plan de aprendizaje de 13 semanas para 
 - Semana 1 (cierre): mini-proyecto integrador (sábado) + repaso (domingo)
 - Semana 2: Power Query avanzado
 - Semanas 3-4: SQL intensivo
+
+____________________________
+
+## Semana 2
+
+### Dia 1: XLOOKUP vs. Merge (Power Query)
+
+XLOOKUP es una fórmula que trabaja fila por fila dentro de una hoja de Excel — busca un valor y trae un dato relacionado desde otra tabla. En esencia, siempre se comporta como una "Externa izquierda": conserva todas mis filas actuales y trae lo que coincida.
+
+Merge, en cambio, funciona dentro de Power Query y combina tablas completas entre sí, no fila por fila. Su ventaja principal es que da control real sobre cómo tratar los datos que no coinciden entre ambas tablas — con tipos como Externa izquierda, Interna o Externa derecha, cada uno responde una pregunta de negocio distinta. Además, al estar dentro de Power Query, la combinación se recalcula automáticamente si los datos originales cambian, sin necesidad de volver a arrastrar ninguna fórmula.
+Con 60 ventas y un producto ('Audífonos') fuera de catálogo: Externa izquierda me dio 60 filas con nulls, Interna me dio 49 filas sin nulls
 
