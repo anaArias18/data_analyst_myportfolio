@@ -84,3 +84,26 @@ XLOOKUP es una fórmula que trabaja fila por fila dentro de una hoja de Excel �
 Merge, en cambio, funciona dentro de Power Query y combina tablas completas entre sí, no fila por fila. Su ventaja principal es que da control real sobre cómo tratar los datos que no coinciden entre ambas tablas — con tipos como Externa izquierda, Interna o Externa derecha, cada uno responde una pregunta de negocio distinta. Además, al estar dentro de Power Query, la combinación se recalcula automáticamente si los datos originales cambian, sin necesidad de volver a arrastrar ninguna fórmula.
 Con 60 ventas y un producto ('Audífonos') fuera de catálogo: Externa izquierda me dio 60 filas con nulls, Interna me dio 49 filas sin nulls
 
+### Día 2 (Martes) — Anexar consultas (Append)
+
+- `Append` apila dos tablas con la misma estructura de columnas, una debajo de otra — a diferencia de `Merge`, que combina tablas agregando columnas nuevas
+- Junté ventas de "enero" (60 filas) con ventas de "febrero" (20 filas) → resultado: 69 filas
+- **Aprendizaje clave sobre orden de operaciones:** como hice el Merge (con la tabla de productos) *antes* del Append, las 20 filas nuevas de febrero quedaron sin Precio/Categoría (null), porque nunca pasaron por ese cruce. Si hubiera anexado primero y combinado después, todas las filas habrían quedado completas.
+
+### Día 3 (Miércoles) — Columna condicional y Agrupar por
+
+- **Columna condicional:** el equivalente visual (sin fórmula) de `SI()` — clasifiqué cada venta como "Alta" o "Baja" según si el Monto supera 50,000
+- **Agrupar por:** el equivalente de una tabla dinámica o `GROUP BY`, pero generado dentro de Power Query como una tabla nueva, no interactiva
+- Usé **Referencia de consulta** para mantener dos versiones de mis datos sin duplicar trabajo: una con el detalle completo (con la columna condicional) y otra resumida (agrupada por vendedor)
+- Resultado del agrupado por Vendedor (Recuento de ventas):
+
+| Vendedor | Cantidad de ventas |
+|---|---|
+| maria | 21 |
+| juan | 18 |
+| pepe | 15 |
+| marta | 15 |
+
+- Verifiqué que el total cuadrara: 21+18+15+15 = 69, igual al total de filas antes de agrupar
+- Observación: maria vendió casi el doble que pepe o marta — vale la pena investigar por qué en un análisis futuro
+
