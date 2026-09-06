@@ -107,3 +107,30 @@ Con 60 ventas y un producto ('Audífonos') fuera de catálogo: Externa izquierda
 - Verifiqué que el total cuadrara: 21+18+15+15 = 69, igual al total de filas antes de agrupar
 - Observación: maria vendió casi el doble que pepe o marta — vale la pena investigar por qué en un análisis futuro
 
+### Día 4 (Jueves) — Power Pivot: Modelo de datos y relaciones
+
+**Parámetros (Power Query):**
+- Un parámetro es una variable reutilizable: un valor central que varias fórmulas o reglas pueden usar
+- Creé `UmbralAlta` (inicialmente 50,000) y lo conecté a mi columna condicional `Clasificacion`
+- Verifiqué que funciona de verdad: al subir el parámetro a 60,000, una fila que antes decía "Alta" cambió a "Baja", sin tocar la fórmula — la actualización se propagó sola
+
+**Power Pivot y relaciones:**
+- El Modelo de datos permite conectar tablas sin copiar datos entre ellas (a diferencia de Merge, que sí copia los datos hacia la tabla principal)
+- Creé una relación entre `ventas_febrero` y `productos`, usando "Producto" como columna en común
+
+**Hallazgo clave — las relaciones filtran en una sola dirección:**
+
+Intenté sumar `Precio` (de la tabla `productos`, el lado "uno") agrupado por `Region` (de la tabla `ventas_febrero`, el lado "muchos"), y el resultado fue el mismo total repetido en cada región (673,000 — la suma completa del catálogo). Esto NO era un error: las relaciones en el Modelo de datos filtran por defecto **solo desde la tabla "uno" hacia la tabla "muchos"**, nunca al revés.
+
+La forma correcta es la inversa: agrupar `Monto` (de `ventas_febrero`, la tabla de hechos) por `Categoria` (de `productos`, la tabla de dimensión). Esa dirección sí funciona, porque un atributo de la tabla "uno" puede filtrar los datos de la tabla "muchos". Con esto obtuve:
+
+| Categoría | Suma de Monto |
+|---|---|
+| Accesorios | ₡156,000 |
+| Tecnología | ₡283,000 |
+| (en blanco — Audífonos, sin match) | ₡273,000 |
+
+Esta lógica de "tabla de hechos vs. tabla de dimensión" y dirección del filtro es la base conceptual de los modelos de Power BI que voy a ver en las Semanas 7-8.
+
+**Choque de nombres — otro aprendizaje del día:**
+Al intentar crear una relación usando la tabla `ventas` original (que ya había pasado por un Merge con `productos` el lunes), tenía dos columnas llamadas "Precio" — una copiada por el Merge, otra en la tabla `productos`. Usar Merge y relaciones sobre el mismo par de tablas genera ambigüedad; mejor elegir un solo enfoque por par de tablas.
