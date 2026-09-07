@@ -134,3 +134,19 @@ Esta lógica de "tabla de hechos vs. tabla de dimensión" y dirección del filtr
 
 **Choque de nombres — otro aprendizaje del día:**
 Al intentar crear una relación usando la tabla `ventas` original (que ya había pasado por un Merge con `productos` el lunes), tenía dos columnas llamadas "Precio" — una copiada por el Merge, otra en la tabla `productos`. Usar Merge y relaciones sobre el mismo par de tablas genera ambigüedad; mejor elegir un solo enfoque por par de tablas.
+
+
+### Mini-proyecto Semana 2 — ¿Qué categoría de producto genera más ingresos, y varía por vendedor?
+
+**Metodología:** matriz cruzada (Categoría en filas, Vendedor en columnas, Suma de Monto en valores) usando la relación entre `ventas_febrero` y `productos` en el Modelo de datos.
+
+| Categoría | juan | maria | marta | pepe | Total |
+|---|---|---|---|---|---|
+| Accesorios | — | 124,000 | 20,000 | 12,000 | 156,000 |
+| Tecnología | 86,000 | 58,000 | 120,000 | 19,000 | 283,000 |
+
+**Hallazgo de negocio:**
+En Accesorios, María lidera claramente con ₡124,000 de los ₡156,000 totales (80% de la categoría). En Tecnología, en cambio, las ventas están más repartidas: Marta lidera con ₡120,000, seguida de Juan (₡86,000) y María (₡58,000). En conjunto, Tecnología generó más ingresos totales (₡283,000) que Accesorios (₡156,000).
+
+**Alerta de calidad de datos:**
+₡273,000 en ventas (repartidos entre Juan y María) corresponden al producto "Audífonos", que no está registrado en la tabla `productos` y por lo tanto no tiene Categoría asignada. Se debería investigar por qué falta este producto en el catálogo — probablemente debería clasificarse dentro de "Accesorios" — y corregirlo para tener un análisis completo y preciso.
