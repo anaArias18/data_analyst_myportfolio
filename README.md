@@ -150,3 +150,42 @@ En Accesorios, María lidera claramente con ₡124,000 de los ₡156,000 totales
 
 **Alerta de calidad de datos:**
 ₡273,000 en ventas (repartidos entre Juan y María) corresponden al producto "Audífonos", que no está registrado en la tabla `productos` y por lo tanto no tiene Categoría asignada. Se debería investigar por qué falta este producto en el catálogo — probablemente debería clasificarse dentro de "Accesorios" — y corregirlo para tener un análisis completo y preciso.
+
+## 📅 Semana 3: SQL Intensivo
+
+**Estado: 🔄 En progreso**
+
+### Día 1 (Lunes) — SQL básico: SELECT, WHERE, SUM, GROUP BY, primer JOIN
+
+- Instalé DB Browser for SQLite como herramienta para escribir y ejecutar consultas
+- Trabajé sobre una base de datos estilo Northwind (Productos, Categorias, Clientes, Pedidos, DetallesPedido — 5 tablas relacionadas)
+- **Equivalencias que conecté con lo que ya sabía de Excel/Power Query:**
+
+| Ya sabía (Excel/Power Query) | Ahora en SQL |
+|---|---|
+| SUMAR.SI / CONTAR.SI | `SUM()` / `COUNT()` + `WHERE` |
+| Tabla dinámica / Agrupar por | `GROUP BY` |
+| XLOOKUP / Merge | `JOIN` |
+| Filtro de tabla | `WHERE` |
+
+- `SELECT columna FROM tabla WHERE condición;` — sintaxis base
+- `SELECT SUM(columna) FROM tabla WHERE condición;` — resume TODO en un solo número (no se puede mezclar con una columna de detalle sin agrupar, mismo problema conceptual que mezclar Filas/Valores mal en Power Pivot)
+- `GROUP BY` — resuelve ese problema: una fila de resumen por categoría, no un solo total
+- `JOIN ... ON tabla1.columna = tabla2.columna` — conecta dos tablas por una columna en común, igual que Merge. Por defecto es un **Inner Join**: solo trae lo que coincide en ambas tablas (equivalente a "Interna" en Power Query)
+- Ejemplo: uní `Productos` con `Categorias` para reemplazar el `CategoriaID` (número) por el nombre real de la categoría
+
+### Día 2 (Martes) — LEFT JOIN, JOIN de 3 tablas, ORDER BY
+
+- `LEFT JOIN` — conserva todas las filas de la tabla principal aunque no haya match (equivalente a "Externa izquierda" en Power Query)
+- **JOIN de 3 tablas (tabla "puente"):** `DetallesPedido` y `Clientes` no tienen ninguna columna en común entre sí — no se pueden conectar directo. Pero `Pedidos` sí comparte `PedidoID` con DetallesPedido, y `ClienteID` con Clientes, así que funciona como puente entre ambas:
+
+```sql
+SELECT Clientes.NombreCliente, Productos.NombreProducto, DetallesPedido.Cantidad
+FROM DetallesPedido
+JOIN Pedidos ON DetallesPedido.PedidoID = Pedidos.PedidoID
+JOIN Clientes ON Pedidos.ClienteID = Clientes.ClienteID
+JOIN Productos ON DetallesPedido.ProductoID = Productos.ProductoID;
+```
+- Resultado: 361 filas (el total de DetallesPedido), confirmando que cada detalle encontró su cliente y producto sin ningún hueco
+- `ORDER BY columna DESC` — ordena resultados de mayor a menor (va al final de la consulta, después de cualquier WHERE/JOIN)
+- **Concepto clave del día:** cuando dos tablas no comparten una columna directa, buscar una tercera tabla que sirva de puente entre ambas — mismo patrón que ya había visto con relaciones en Power Pivot la semana pasada
