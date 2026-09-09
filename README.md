@@ -189,3 +189,46 @@ JOIN Productos ON DetallesPedido.ProductoID = Productos.ProductoID;
 - Resultado: 361 filas (el total de DetallesPedido), confirmando que cada detalle encontró su cliente y producto sin ningún hueco
 - `ORDER BY columna DESC` — ordena resultados de mayor a menor (va al final de la consulta, después de cualquier WHERE/JOIN)
 - **Concepto clave del día:** cuando dos tablas no comparten una columna directa, buscar una tercera tabla que sirva de puente entre ambas — mismo patrón que ya había visto con relaciones en Power Pivot la semana pasada
+
+### Día 3 (Miércoles) — Funciones de agregación avanzadas: COUNT, AVG, MAX, MIN, HAVING
+
+**Funciones de agregación nuevas:**
+- `COUNT()` — cuenta filas (equivalente a CONTAR.SI)
+- `AVG()` — promedio
+- `MAX()` / `MIN()` — valor más alto / más bajo
+- Todas se combinan con `GROUP BY` cuando se necesita el resultado separado por categoría
+
+**HAVING — filtrar después de agrupar:**
+- `WHERE` filtra filas *antes* de agrupar (fila por fila)
+- `HAVING` filtra el resultado *después* de agrupar (sobre los totales ya calculados)
+- Ejemplo: encontrar clientes con más de 8 pedidos necesita `HAVING`, no `WHERE`, porque el conteo por cliente recién existe después del `GROUP BY`
+
+```sql
+SELECT ClienteID, COUNT(*) 
+FROM Pedidos 
+GROUP BY ClienteID 
+HAVING COUNT(*) > 8;
+```
+→ Resultado: 4 de 20 clientes hicieron más de 8 pedidos
+
+**Orden fijo de las cláusulas:**
+
+**La regla de oro (el error que más se repitió hoy):**
+Todo lo que va en el `SELECT` debe ser, o la columna por la que se agrupa (`GROUP BY`), o una función de agregación sobre una columna específica (`SUM()`, `AVG()`, `COUNT()`...). Nunca se puede dejar una columna de detalle suelta (como `NombreProducto` o `PedidoID`) junto a un resultado agrupado — SQL no sabría cuál de los múltiples valores posibles mostrar.
+
+**Ejercicio guiado — combinar JOIN + GROUP BY + AVG:**
+
+Armé paso a paso (primero el JOIN solo, después agregando la columna a resumir, y por último agrupando) una consulta que responde: ¿cuál es el precio promedio por categoría, usando el nombre real en vez del ID?
+
+```sql
+SELECT Categorias.NombreCategoria, AVG(Productos.PrecioUnitario) AS PromedioPorCategorias
+FROM Productos
+JOIN Categorias ON Productos.CategoriaID = Categorias.CategoriaID
+GROUP BY Categorias.NombreCategoria;
+```
+
+- El `JOIN` trae el nombre real de la categoría (Productos solo tiene el ID)
+- El `GROUP BY` resume 40 productos en 8 categorías
+- Resultado: "Productos del Mar" tiene el precio promedio más alto de todas las categorías
+
+**Aprendizaje del día:** cuando una consulta se pone difícil, conviene construirla en pasos — primero el JOIN solo (verlo funcionar), después agregar la columna a resumir sin tocar nada más, y recién al final envolver en la función de agregación y agrupar. Intentar escribir todo de una vez lleva a mezclar los mismos errores repetidos.
