@@ -232,3 +232,44 @@ GROUP BY Categorias.NombreCategoria;
 - Resultado: "Productos del Mar" tiene el precio promedio más alto de todas las categorías
 
 **Aprendizaje del día:** cuando una consulta se pone difícil, conviene construirla en pasos — primero el JOIN solo (verlo funcionar), después agregar la columna a resumir sin tocar nada más, y recién al final envolver en la función de agregación y agrupar. Intentar escribir todo de una vez lleva a mezclar los mismos errores repetidos.
+
+### Día 4 (Jueves) — Subconsultas (subqueries)
+
+**¿Qué es una subconsulta?**
+Una consulta SQL completa, escrita **dentro** de otra consulta (entre paréntesis), para responder preguntas que necesitan resolverse en dos pasos: primero un resultado intermedio, después usar ese resultado dentro de la consulta principal.
+
+**Tipo 1 — Subconsulta con `NOT IN` (verificar pertenencia a una lista)**
+
+Se usa cuando solo necesitás comprobar si algo *existe o no* en otra tabla, sin necesitar ningún otro dato combinado — por eso es más liviana que un `LEFT JOIN` para este caso específico.
+
+```sql
+SELECT NombreProducto
+FROM Productos
+WHERE ProductoID NOT IN (
+    SELECT ProductoID FROM DetallesPedido
+);
+```
+→ Pregunta: ¿qué productos nunca se vendieron?
+→ Resultado: 0 filas — resultado válido, no un error. Significa que los 40 productos se vendieron al menos una vez.
+
+**Tipo 2 — Subconsulta comparando contra un valor calculado**
+
+Se usa cuando necesitás comparar cada fila contra un número que primero hay que calcular (como un promedio general), en vez de un número fijo escrito a mano.
+
+```sql
+SELECT NombreProducto, PrecioUnitario 
+FROM Productos
+WHERE PrecioUnitario > (
+    SELECT AVG(PrecioUnitario) FROM Productos
+);
+```
+→ La parte de adentro calcula un solo número (el promedio general)
+→ La parte de afuera compara cada producto contra ese número, como si fuera un valor fijo
+→ Resultado: 21 de 40 productos superan el precio promedio
+
+**Cómo construir una subconsulta sin trabarse:**
+1. Escribir primero la parte de **adentro sola**, y confirmar que funciona por sí misma
+2. Después envolverla entre paréntesis, dentro del `WHERE` de la consulta principal
+3. No intentar escribir las dos partes de una sola vez — separar el problema en pasos evita mezclar errores
+
+**Recurso de refuerzo:** video de TodoCode sobre subconsultas SQL con práctica, para reforzar los dos tipos vistos hoy (WHERE con NOT IN y comparación con valor calculado).
