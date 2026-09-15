@@ -273,3 +273,76 @@ WHERE PrecioUnitario > (
 3. No intentar escribir las dos partes de una sola vez — separar el problema en pasos evita mezclar errores
 
 **Recurso de refuerzo:** video de TodoCode sobre subconsultas SQL con práctica, para reforzar los dos tipos vistos hoy (WHERE con NOT IN y comparación con valor calculado).
+
+### Día 5 (Viernes) — Funciones de fecha y CASE WHEN
+
+**Funciones de fecha (SQLite):**
+```sql
+strftime('%m', FechaPedido)   → extrae el mes
+strftime('%Y', FechaPedido)   → extrae el año
+```
+Se combinan con `GROUP BY` como cualquier otra columna — permite agrupar por mes, año, etc.
+
+```sql
+SELECT strftime('%m', FechaPedido) AS Mes, COUNT(*) AS CantidadPedidos
+FROM Pedidos
+GROUP BY strftime('%m', FechaPedido);
+```
+→ Resultado: 8 meses distintos con datos, Marzo lidera con 21 pedidos.
+
+**CASE WHEN — el "SI" de SQL, con múltiples condiciones:**
+```sql
+SELECT DetalleID, Cantidad,
+    CASE 
+        WHEN Cantidad > 10 THEN 'Grande'
+        ELSE 'Chico'
+    END AS Clasificacion
+FROM DetallesPedido;
+```
+→ Con 2 categorías posibles, alcanza con 1 `WHEN` explícito — el `ELSE` cubre el resto automáticamente. Resultado: distribución bastante pareja entre "Grande" y "Chico".
+
+---
+
+### Mini-proyecto Semana 3 — ¿Qué clientes gastaron más, y en qué categorías?
+
+**Metodología:** consulta combinando 5 tablas (Clientes → Pedidos → DetallesPedido → Productos → Categorias), calculando el gasto real (Cantidad × PrecioUnitario) y agrupando por cliente y categoría.
+
+**Construcción paso a paso** (la consulta más compleja de la semana, armada agregando un JOIN a la vez y verificando el conteo de filas en cada paso):
+
+```sql
+SELECT Clientes.NombreCliente, Categorias.NombreCategoria, 
+       SUM(DetallesPedido.Cantidad * Productos.PrecioUnitario) AS GastoTotal
+FROM Pedidos
+JOIN Clientes ON Pedidos.ClienteID = Clientes.ClienteID
+JOIN DetallesPedido ON Pedidos.PedidoID = DetallesPedido.PedidoID
+JOIN Productos ON DetallesPedido.ProductoID = Productos.ProductoID
+JOIN Categorias ON Productos.CategoriaID = Categorias.CategoriaID
+GROUP BY Clientes.NombreCliente, Categorias.NombreCategoria
+ORDER BY GastoTotal DESC;
+```
+
+**Hallazgos:**
+
+El cliente con mayor gasto en una sola categoría es Mercado Andino, en Lácteos, con ₡2,071,637.18. El cliente más diversificado dentro del top 10 es Comercializadora Sol, que aparece fuerte en 3 categorías distintas — a diferencia de la mayoría, que se concentra en una o dos. En conjunto, el top 10 de gasto por categoría está dominado por solo 3 clientes (Mercado Andino, Comercializadora Sol y Tienda La Esquina), que ocupan la mayoría de los primeros puestos entre 2 o 3 categorías cada uno.
+
+**Aprendizaje técnico del día:** una consulta con 4-5 JOINs se construye mucho mejor agregando una tabla a la vez y verificando el conteo de filas en cada paso, que intentando escribir todo de una sola vez.
+
+---
+
+## ✅ Repaso final — Semana 3 completa
+
+**1. JOIN:** une tablas a partir de una columna en común. Sin especificar tipo, es un Inner Join — equivale a "Interna" en Power Query (solo lo que coincide en ambas tablas).
+
+**2. LEFT JOIN:** conserva todos los registros de la tabla de la izquierda, y solo los coincidentes de la tabla de la derecha (equivale a "Externa izquierda" en Power Query).
+
+**3. Tabla puente:** cuando dos tablas no comparten ninguna columna directamente, pero ambas comparten columnas distintas con una tercera tabla, esa tercera tabla sirve de "puente" para conectarlas con dos JOINs encadenados (ej: DetallesPedido y Clientes se conectan a través de Pedidos).
+
+**4. WHERE vs. HAVING:** WHERE filtra filas individuales, antes de cualquier agrupamiento (sobre datos crudos). HAVING filtra el resultado ya resumido, después de que GROUP BY calculó los totales por grupo — por eso HAVING necesita que exista un GROUP BY primero.
+
+**5. Dos tipos de subconsulta:**
+- `NOT IN` → verificar si algo existe o no dentro de una lista generada por otra consulta
+- Comparación con valor calculado → comparar cada fila contra un número que primero hay que calcular (ej. un promedio), en vez de un número fijo
+
+**6. Regla de oro del SELECT:** todo lo que va en el SELECT debe ser, o la columna exacta del GROUP BY, o una función de agregación sobre otra columna. Nunca una columna de detalle suelta sin agrupar — SQL no sabría cuál valor mostrar entre los múltiples posibles.
+
+**Semana 3 completa:** SQL básico (SELECT, WHERE, SUM, GROUP BY), JOINs (simple, LEFT, 3+ tablas encadenadas), funciones de agregación avanzadas (COUNT, AVG, MAX, HAVING), subconsultas, funciones de fecha, y CASE WHEN — todo aplicado sobre una base de datos relacional real (Northwind), no solo ejercicios aislados.
