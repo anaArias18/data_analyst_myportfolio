@@ -346,3 +346,63 @@ El cliente con mayor gasto en una sola categoría es Mercado Andino, en Lácteos
 **6. Regla de oro del SELECT:** todo lo que va en el SELECT debe ser, o la columna exacta del GROUP BY, o una función de agregación sobre otra columna. Nunca una columna de detalle suelta sin agrupar — SQL no sabría cuál valor mostrar entre los múltiples posibles.
 
 **Semana 3 completa:** SQL básico (SELECT, WHERE, SUM, GROUP BY), JOINs (simple, LEFT, 3+ tablas encadenadas), funciones de agregación avanzadas (COUNT, AVG, MAX, HAVING), subconsultas, funciones de fecha, y CASE WHEN — todo aplicado sobre una base de datos relacional real (Northwind), no solo ejercicios aislados.
+
+## Semana 4: SQL Avanzado
+
+### Días 1-3 (Lunes-Martes-Miércoles) — Window Functions, CTEs, UNION y Self-Join
+
+**Window Functions — resumir sin perder el detalle:**
+
+`GROUP BY` colapsa varias filas en una sola por grupo — perdés el detalle individual. Las Window Functions resuelven esto: muestran cada fila completa, **y además** agregan un cálculo sobre su grupo, sin sacrificar nada.
+
+```sql
+SELECT 
+    NombreProducto, 
+    CategoriaID, 
+    PrecioUnitario,
+    ROW_NUMBER() OVER (PARTITION BY CategoriaID ORDER BY PrecioUnitario DESC) AS Ranking
+FROM Productos;
+```
+- `PARTITION BY CategoriaID` → reinicia la numeración en cada categoría (como un GROUP BY, pero sin colapsar filas)
+- `ROW_NUMBER()` vs `RANK()`: con empates exactos, RANK() da el mismo número a ambos y salta el siguiente; ROW_NUMBER() los numera distinto igual. En mi dataset no hubo empates de precio, así que ambas funciones dieron el mismo resultado — confirmé esto probando ambas, no solo asumiéndolo.
+- Resultado: 5 productos por categoría, ranking de 1 a 5 dentro de cada una.
+
+**CTEs (Common Table Expressions) — nombrar una subconsulta reutilizable:**
+
+Equivalente a definir una función una sola vez y "llamarla" después, en vez de repetir la lógica completa cada vez. Especialmente útil en consultas largas con varios JOINs, donde mejora mucho la legibilidad.
+
+```sql
+WITH GastoPorClienteCategoria AS (
+    SELECT Clientes.NombreCliente, Categorias.NombreCategoria, 
+           SUM(DetallesPedido.Cantidad * Productos.PrecioUnitario) AS GastoTotal
+    FROM Pedidos
+    JOIN Clientes ON Pedidos.ClienteID = Clientes.ClienteID
+    JOIN DetallesPedido ON Pedidos.PedidoID = DetallesPedido.PedidoID
+    JOIN Productos ON DetallesPedido.ProductoID = Productos.ProductoID
+    JOIN Categorias ON Productos.CategoriaID = Categorias.CategoriaID
+    GROUP BY Clientes.NombreCliente, Categorias.NombreCategoria
+)
+SELECT NombreCliente, NombreCategoria, GastoTotal
+FROM GastoPorClienteCategoria;
+```
+- Reescribí mi consulta del mini-proyecto de la Semana 3 (5 tablas) usando esta estructura
+- El resultado es idéntico al original — un CTE no cambia el resultado, solo la organización y legibilidad de la consulta
+- Partes de la sintaxis: `WITH nombre AS (` para abrir, la consulta completa adentro, `)` para cerrar, y un `SELECT ... FROM nombre` final para usarlo
+
+**UNION — el "Append" de SQL:**
+
+```sql
+SELECT PedidoID FROM Pedidos WHERE Pais = 'Costa Rica'
+UNION
+SELECT PedidoID FROM Pedidos WHERE Pais = 'Mexico';
+```
+- Apila los resultados de dos consultas, igual que Append en Power Query
+- `UNION` elimina duplicados automáticamente; `UNION ALL` los conserva
+- **Matiz importante:** con una columna de identificador único (como PedidoID), no puede haber duplicados entre las dos consultas — por lo tanto UNION y UNION ALL dan exactamente el mismo resultado en este caso. La diferencia entre ambos solo se nota cuando sí es posible que se repitan filas idénticas.
+- Resultado: 31 pedidos entre Costa Rica y México combinados
+
+**Self-Join — una tabla conectada consigo misma (concepto, sin práctica):**
+
+Útil cuando una tabla tiene una relación consigo misma (ej: un empleado con un "jefe" que también es empleado de la misma tabla). Se resuelve con JOIN usando dos alias distintos de la misma tabla. Northwind no tiene una columna así, por lo que quedó como concepto a tener presente para el futuro, sin ejercicio práctico hoy.
+
+**Resumen de los 3 días:** Window Functions (detalle + resumen simultáneo), CTEs (subconsultas reutilizables y legibles), UNION (apilar resultados de consultas), y el concepto de Self-Join — cerrando los temas más avanzados de SQL antes del mini-proyecto final de la Semana 4.
