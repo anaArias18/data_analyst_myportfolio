@@ -455,3 +455,58 @@ Esto podría interpretarse como una señal de negocio: en las categorías donde 
 ---
 
 **Semana 4 completa — cierre del bloque de SQL (Semanas 3-4):** desde SELECT básico hasta CTEs encadenados con Window Functions y JOINs entre CTEs. Próximo bloque: Python + Pandas (Semana 5).
+
+## Semana 5: Python + Pandas
+
+### Día 1 (Lunes) — Fundamentos de Python y primer DataFrame
+
+**Python básico:**
+```python
+nombre = "María"        # texto (string)
+edad = 25                # entero (int)
+precio = 19.99           # decimal (float)
+activo = True             # booleano
+ventas = [100, 250, 80]   # lista
+```
+Mismos tipos de dato que ya conocía de Excel/SQL (texto, número, fecha, booleano) — distinta sintaxis, mismo concepto de fondo.
+
+**DataFrame — una tabla de Excel dentro de Python:**
+```python
+import pandas as pd
+df = pd.read_csv("1000 Sales Records.csv")
+```
+
+**Comandos de exploración básica:**
+```python
+df.head()    # primeras 5 filas — equivalente a SELECT * FROM tabla LIMIT 5
+df.shape     # (filas, columnas) → (1000, 14)
+df.columns   # lista los nombres de columna
+df.dtypes    # tipo de dato de cada columna
+```
+
+**Sobre `int64`:** el número no indica el valor máximo permitido de forma directa para el usuario común, sino la cantidad de *bits* que la computadora usa para guardar ese número en memoria. Más bits = puede guardar números más grandes, pero ocupa más espacio. Pandas usa 64 bits por defecto como margen de seguridad, aunque para un dataset de 1000 filas la diferencia de memoria es insignificante — donde sí importa es en datasets de millones de filas.
+
+---
+
+**Configuración del entorno — problemas reales resueltos:**
+
+Antes de llegar a cargar el primer DataFrame, tuve que resolver varios obstáculos de configuración, en orden:
+
+1. **Entorno virtual (venv) no encontrado:** el que había creado en la Semana 0 no estaba en la carpeta actual — lo recreé directo dentro de "Data Analyst" con `python -m venv data-analyst-env`.
+
+2. **Error de permisos al activar:** PowerShell bloqueaba `Activate.ps1` por política de seguridad. Se resuelve una sola vez por cuenta de Windows con:
+
+
+3. **`.gitignore` para excluir el entorno virtual del repositorio** — creado con la línea `data-analyst-env/`, para no subir a GitHub los archivos internos de Python (pesados e innecesarios como código propio).
+
+4. **`jupyter` no reconocido:** pasaba porque el entorno virtual no estaba activo en ese momento — jupyter vive *dentro* del entorno, no en el Python global de Windows. Solución: activar el entorno antes de correr `jupyter notebook`.
+
+5. **Archivo `.py` en vez de `.ipynb`:** al crear el notebook por primera vez, elegí sin darme cuenta "Python File" en vez de "Notebook" — un `.py` no tiene celdas ejecutables con Shift+Enter como un notebook real.
+
+6. **CSV guardado en la carpeta equivocada:** el archivo terminó dentro de `data-analyst-env` (la carpeta del entorno) en vez de `Data Analyst` (donde vive el resto del trabajo) — lo moví al lugar correcto con el Explorador de Windows.
+
+7. **Notebook ejecutándose desde una subcarpeta distinta:** usando `os.getcwd()` descubrí que Jupyter estaba corriendo desde `Data Analyst\Semana 2`, no desde `Data Analyst` donde está el CSV — por eso `FileNotFoundError` a pesar de que el archivo "estaba ahí cerca".
+
+8. **Mover el notebook con Jupyter abierto rompió su referencia interna de ruta**, generando un error de guardado con una ruta duplicada/corrupta. Solución real: cerrar Jupyter completamente (Ctrl+C en la terminal), y volver a abrirlo desde cero, parada en la carpeta correcta, creando el notebook nuevo ahí directamente — sin moverlo después.
+
+**Aprendizaje general del día:** los problemas de configuración de entorno (rutas, permisos, carpetas) son tan parte del trabajo real de un analista como la sintaxis de Pandas en sí. Diagnosticar con herramientas simples (`os.getcwd()`, revisar el Explorador de Windows) antes de asumir que algo está "roto" ahorra mucho tiempo.
