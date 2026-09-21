@@ -406,3 +406,52 @@ SELECT PedidoID FROM Pedidos WHERE Pais = 'Mexico';
 Útil cuando una tabla tiene una relación consigo misma (ej: un empleado con un "jefe" que también es empleado de la misma tabla). Se resuelve con JOIN usando dos alias distintos de la misma tabla. Northwind no tiene una columna así, por lo que quedó como concepto a tener presente para el futuro, sin ejercicio práctico hoy.
 
 **Resumen de los 3 días:** Window Functions (detalle + resumen simultáneo), CTEs (subconsultas reutilizables y legibles), UNION (apilar resultados de consultas), y el concepto de Self-Join — cerrando los temas más avanzados de SQL antes del mini-proyecto final de la Semana 4.
+
+### Mini-proyecto Semana 4 — ¿Cuál es el producto más caro de cada categoría, y cómo se compara con el promedio de su categoría?
+
+**Metodología:** 2 CTEs conectados con JOIN — uno con Window Function (`ROW_NUMBER() OVER PARTITION BY`) para rankear productos dentro de su categoría, otro con el promedio por categoría (`GROUP BY` + `AVG`).
+
+```sql
+WITH RankedProducts AS (
+    SELECT NombreProducto, CategoriaID, PrecioUnitario, 
+           ROW_NUMBER() OVER (PARTITION BY CategoriaID ORDER BY PrecioUnitario DESC) AS Ranking
+    FROM Productos
+),
+PromedioCategoria AS (
+    SELECT CategoriaID, AVG(PrecioUnitario) AS PromedioCategoria
+    FROM Productos 
+    GROUP BY CategoriaID
+)
+SELECT NombreProducto, RankedProducts.CategoriaID, PrecioUnitario, PromedioCategoria
+FROM RankedProducts
+JOIN PromedioCategoria ON RankedProducts.CategoriaID = PromedioCategoria.CategoriaID
+WHERE Ranking = 1;
+```
+
+**Por qué se necesitan 2 CTEs en vez de una sola consulta:** no se puede filtrar `WHERE Ranking = 1` en la misma consulta donde se calcula `ROW_NUMBER()`, porque las Window Functions se calculan *después* de que WHERE ya filtró las filas — en el momento del WHERE, la columna Ranking todavía no existe. Por eso el ranking se calcula primero dentro de un CTE, y recién se filtra por él en la consulta final, por fuera.
+
+**Error encontrado y corregido:** `ambiguous column name: CategoriaID` — al tener dos CTEs con una columna del mismo nombre, hay que especificar de cuál viene cada una (`RankedProducts.CategoriaID`), igual que se hace al conectar tablas normales con JOIN.
+
+**Hallazgos:**
+
+El análisis muestra el producto más caro de cada categoría, comparado con el precio promedio de esa misma categoría. Tres productos destacan por tener una diferencia muy alta respecto a su promedio: Aguacates (2x el promedio, la diferencia más grande de toda la tabla), Sal Marina (también 2x) y Agua Mineral (1.6x). En el otro extremo, Yogur Natural es el más "típico" de su categoría, con su precio máximo apenas 22% por encima del promedio — la diferencia más pequeña de todas.
+
+Esto podría interpretarse como una señal de negocio: en las categorías donde el producto más caro está muy por encima del promedio, probablemente hay un producto premium aislado entre varios productos baratos. En categorías como Lácteos, en cambio, los precios tienden a ser más parejos entre todos los productos.
+
+---
+
+## ✅ Repaso final — Semana 4 completa
+
+**1. GROUP BY vs. Window Function:** GROUP BY colapsa todas las filas en una por grupo. Window Function conserva todas las filas originales, agregando el resultado del cálculo como una columna nueva, sin perder el detalle.
+
+**2. CTE:** una tabla virtual temporal que modulariza una consulta compleja en partes aisladas, antes de combinarlas — simplifica la lógica y mejora la legibilidad, especialmente útil con múltiples CTEs conectados entre sí.
+
+**3. UNION:** combina los resultados de dos o más consultas SELECT, eliminando filas duplicadas (no columnas). UNION y UNION ALL dan el mismo resultado cuando no es posible que existan filas duplicadas entre ambas consultas (ej: con una columna de ID único).
+
+**4. Ambiguous column name:** ocurre cuando dos tablas o CTEs combinados tienen una columna con el mismo nombre, y no se especifica de cuál viene. Se soluciona indicando explícitamente la tabla/CTE de origen (`NombreTabla.Columna`).
+
+**5. Por qué se necesita un CTE para filtrar por Window Function:** SQL calcula las Window Functions después de que WHERE ya filtró las filas — en el momento del WHERE, la columna calculada (como Ranking) todavía no existe. Por eso se calcula primero dentro de un CTE, y se filtra después en una consulta separada.
+
+---
+
+**Semana 4 completa — cierre del bloque de SQL (Semanas 3-4):** desde SELECT básico hasta CTEs encadenados con Window Functions y JOINs entre CTEs. Próximo bloque: Python + Pandas (Semana 5).
