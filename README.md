@@ -510,3 +510,50 @@ Antes de llegar a cargar el primer DataFrame, tuve que resolver varios obstácul
 8. **Mover el notebook con Jupyter abierto rompió su referencia interna de ruta**, generando un error de guardado con una ruta duplicada/corrupta. Solución real: cerrar Jupyter completamente (Ctrl+C en la terminal), y volver a abrirlo desde cero, parada en la carpeta correcta, creando el notebook nuevo ahí directamente — sin moverlo después.
 
 **Aprendizaje general del día:** los problemas de configuración de entorno (rutas, permisos, carpetas) son tan parte del trabajo real de un analista como la sintaxis de Pandas en sí. Diagnosticar con herramientas simples (`os.getcwd()`, revisar el Explorador de Windows) antes de asumir que algo está "roto" ahorra mucho tiempo.
+
+### Día 2 (Martes) — Selección y filtrado de datos con Pandas
+
+**Seleccionar columnas:**
+```python
+df["Region"]                                    # una columna (corchete simple)
+df[["Region", "Total Profit"]]                   # varias columnas (doble corchete)
+```
+
+**Filtrar filas — el WHERE de Pandas:**
+
+A diferencia de SQL, donde `WHERE` es una palabra clave, en Pandas el filtro se arma con una condición booleana dentro de corchetes:
+
+```python
+df[df["Total Profit"] > 100000]
+```
+
+- `df["Total Profit"] > 100000` por sí sola genera una lista de True/False, una por fila (confirmé esto corriéndola sin el `df[...]` de afuera)
+- Envolver eso en `df[...]` hace que Pandas devuelva solo las filas marcadas como True
+- Resultado: 747 de 1000 filas tienen ganancia mayor a 100,000
+
+**Múltiples condiciones combinadas:**
+
+En Pandas no se usa `and`/`or` de Python normal — se usan los símbolos `&` (Y) y `|` (O), y cada condición individual necesita sus propios paréntesis:
+
+```python
+df[(df["Total Profit"] > 100000) & (df["Sales Channel"] == "Online")]
+```
+→ Resultado: 354 filas (menos que las 747 de una sola condición, porque ahora se exigen ambas condiciones a la vez)
+
+**Combinar filtro + selección de columnas:**
+
+```python
+df[df["Region"] == "Europe"][["Region", "Item Type", "Total Profit"]]
+```
+→ Primero se filtran las filas (solo Europa), después se seleccionan las columnas deseadas de ese resultado ya filtrado. El orden importa: filtro primero, columnas después.
+→ Resultado: 267 filas de Europa, con solo 3 columnas.
+
+**Problema de sesión resuelto:** al reabrir el notebook en una sesión nueva, el kernel se reinicia y las variables (como `df`) dejan de existir en memoria, aunque el código siga visible en las celdas. Hay que volver a correr la celda de carga (`import pandas`, `read_csv`) antes de usar `df` en cualquier celda nueva. Tip para el futuro: usar "Run All Cells" al reabrir un notebook, en vez de correr celdas sueltas de arriba.
+
+**Equivalencias con lo que ya sabía:**
+
+| SQL / Excel | Pandas |
+|---|---|
+| `WHERE columna > valor` | `df[df["columna"] > valor]` |
+| `WHERE cond1 AND cond2` | `df[(cond1) & (cond2)]` |
+| `SELECT col1, col2` | `df[["col1", "col2"]]` |
