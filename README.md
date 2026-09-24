@@ -557,3 +557,53 @@ df[df["Region"] == "Europe"][["Region", "Item Type", "Total Profit"]]
 | `WHERE columna > valor` | `df[df["columna"] > valor]` |
 | `WHERE cond1 AND cond2` | `df[(cond1) & (cond2)]` |
 | `SELECT col1, col2` | `df[["col1", "col2"]]` |
+
+
+### Día 3-4 (Miércoles-Jueves) — GroupBy y Merge de DataFrames en Pandas
+
+**GroupBy — el GROUP BY de SQL / Agrupar por de Power Query, en Pandas:**
+
+```python
+df.groupby("Region")["Total Profit"].sum()    # suma por grupo
+df.groupby("Region")["Total Profit"].mean()   # promedio por grupo
+df.groupby("Region")["Total Profit"].count()  # conteo por grupo
+
+# Las 3 métricas juntas de una sola vez:
+df.groupby("Region")["Total Profit"].agg(["sum", "mean", "count"])
+```
+
+**Hallazgo de negocio:** Europa domina en ganancia total (₡106.7M) porque tiene casi el triple de ventas (267) que Central America and the Caribbean (99) — pero Central America tiene el promedio de ganancia por venta más alto (₡417,543), lo que la hace más "eficiente" por transacción aunque genere menos ingreso total. Mismo patrón que ya había visto en el mini-proyecto de la Semana 1 (North America con menor volumen pero mejor margen) — un caso más de que "quién gana más en total" y "quién es más eficiente" pueden ser respuestas distintas a preguntas distintas.
+
+**Nota técnica:** los resultados de `.sum()` a veces aparecen en notación científica (ej. `1.067720e+08`), que equivale a 106,772,000 — no es un error, es solo la forma en que Python muestra números grandes por defecto.
+
+---
+
+**Merge de DataFrames — el JOIN de SQL / Merge de Power Query, en Pandas:**
+
+```python
+pd.merge(df1, df2, on="columna_en_comun", how="inner")
+```
+
+| Parámetro `how` | Equivalente |
+|---|---|
+| `"inner"` | Inner Join (SQL) / "Interna" (Power Query) |
+| `"left"` | LEFT JOIN (SQL) / "Externa izquierda" (Power Query) |
+| `"right"` | RIGHT JOIN (SQL) / "Externa derecha" (Power Query) |
+| `"outer"` | Full Outer Join |
+
+**Comprobación práctica con datos reales:** creé una tabla pequeña `Region → Continente` con solo 4 de las 7 regiones existentes en el dataset (a propósito, dejando 3 afuera), para comparar `how="left"` vs. `how="inner"`:
+
+- `how="left"` → 1000 filas (todas conservadas). Las regiones sin match en la tabla pequeña (Middle East and North Africa, Central America and the Caribbean, Australia and Oceania) aparecieron con `NaN` en la columna Continente, sin desaparecer.
+- `how="inner"` → 684 filas. Las filas sin match se eliminaron completamente (1000 - 684 = 316 filas correspondientes a esas 3 regiones).
+
+**Confirmación:** mismo comportamiento que ya había visto con "Audífonos" en Power Query (Semana 2) y con LEFT JOIN en SQL (Semana 3) — tres herramientas distintas, mismo concepto de fondo.
+
+**Error de sintaxis resuelto:** dos instrucciones de Python escritas en la misma línea sin salto de línea entre ellas causan `SyntaxError: invalid syntax`. Cada instrucción necesita su propia línea.
+
+**Equivalencias consolidadas — 3 herramientas, mismo concepto:**
+
+| Concepto | SQL | Power Query | Pandas |
+|---|---|---|---|
+| Agrupar y resumir | `GROUP BY` | Agrupar por | `.groupby()` |
+| Unir tablas (solo coincidencias) | `JOIN` / Inner Join | Externa/Interna | `how="inner"` |
+| Unir conservando todo de un lado | `LEFT JOIN` | Externa izquierda | `how="left"` |
