@@ -607,3 +607,46 @@ pd.merge(df1, df2, on="columna_en_comun", how="inner")
 | Agrupar y resumir | `GROUP BY` | Agrupar por | `.groupby()` |
 | Unir tablas (solo coincidencias) | `JOIN` / Inner Join | Externa/Interna | `how="inner"` |
 | Unir conservando todo de un lado | `LEFT JOIN` | Externa izquierda | `how="left"` |
+
+### Día 5-6 (Viernes-Sábado) — Limpieza de datos con Pandas + Mini-proyecto
+
+**Limpieza de datos — comandos principales:**
+
+```python
+df.isna().sum()              # cuenta nulos por columna
+df.dropna(subset=["Col"])    # elimina filas con nulo en una columna específica
+df.fillna(valor)              # rellena nulos con un valor dado
+df.duplicated().sum()          # cuenta filas duplicadas
+df.drop_duplicates()           # elimina duplicados (conserva la primera aparición)
+```
+
+**Práctica con dataset sucio a propósito** (el dataset real `1000 Sales Records.csv` ya venía limpio — confirmado con `isna().sum()` dando 0 en todas las columnas, consistente con lo que ya sabía desde la Semana 1 con Power Query):
+
+- Creé un DataFrame con 6 filas: 2 duplicadas exactas, 1 con Producto nulo, 1 con Precio nulo
+- `drop_duplicates()` → 6 filas a 4 (eliminó las 2 duplicadas)
+- `dropna(subset=["Producto"])` → 4 filas a 3 (eliminó la fila sin nombre de producto, porque sin ese dato no aporta información útil)
+- `fillna(Precio.mean())` → rellenó el precio faltante de "Teclado" con 179,000 (promedio de Laptop 350,000 y Mouse 8,000), en vez de perder la fila completa
+
+**Decisión clave documentada:** no hay una regla única para tratar nulos — se eliminó la fila donde el dato faltante era imposible de estimar (Producto), pero se rellenó donde sí había un criterio razonable (Precio, con el promedio). La decisión depende del contexto de cada columna, no de una regla automática.
+
+**Error de sintaxis resuelto:** escribir un diccionario de Python (`pd.DataFrame({...})`) todo en una sola línea sin saltos de línea reales causa error — cada parte del código necesita su propia línea, aunque esté dentro de un paréntesis abierto.
+
+---
+
+### Mini-proyecto Semana 5 — ¿Qué canal de ventas (Online/Offline) es más rentable por región?
+
+**Metodología:** `groupby()` con lista de 2 columnas a la vez, para agrupar por Región y Canal simultáneamente.
+
+```python
+df.groupby(["Region", "Sales Channel"])["Total Profit"].mean()
+```
+
+**Hallazgos:**
+
+El canal de ventas más rentable no muestra un patrón geográfico dominante: de las 7 regiones, 4 favorecen el canal Online (Australia and Oceania, Europe, Middle East and North Africa, North America) y 3 favorecen Offline (Asia, Central America and the Caribbean, Sub-Saharan Africa) — un resultado bastante parejo, sin una tendencia global clara. El caso más destacado es North America, donde Online supera a Offline por ₡193,542 en promedio (₡487,179 vs. ₡293,637), la diferencia más grande de toda la tabla. Aunque el continente americano en su conjunto está dividido (North America favorece Online, mientras Central America and the Caribbean favorece Offline), la preferencia por lo Online en North America específicamente es la señal más fuerte y consistente de todo el análisis.
+
+**Aprendizaje técnico:** `groupby()` acepta una lista de columnas (`["Region", "Sales Channel"]`) para agrupar por múltiples criterios a la vez, generando una fila por cada combinación única entre ellos.
+
+---
+
+**Semana 5 completa:** entorno Python configurado, selección y filtrado de datos, GroupBy, Merge de DataFrames, limpieza de datos, y mini-proyecto integrando todo lo anterior. Próximo bloque: continuación de Python (Semana 6) antes de Power BI.
