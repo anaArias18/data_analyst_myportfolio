@@ -650,3 +650,52 @@ El canal de ventas más rentable no muestra un patrón geográfico dominante: de
 ---
 
 **Semana 5 completa:** entorno Python configurado, selección y filtrado de datos, GroupBy, Merge de DataFrames, limpieza de datos, y mini-proyecto integrando todo lo anterior. Próximo bloque: continuación de Python (Semana 6) antes de Power BI.
+
+## ✅ Repaso final — Semana 5 completa
+
+**1. Filtrar con múltiples condiciones:**
+```python
+df[(df["Region"] == "Europe") & (df["Sales Channel"] == "Online")]
+```
+Cada condición individual necesita su propio paréntesis, conectadas con `&` (Y) o `|` (O).
+
+**2. GroupBy — funciones de agregación:** `.sum()` (suma), `.mean()` (promedio), `.count()` (conteo de no-nulos). `.agg()` permite aplicar varias funciones a la vez o distintas por columna.
+
+**3. Merge — left vs. inner:** `how="inner"` conserva solo las filas con match en ambos DataFrames. `how="left"` conserva todas las filas del DataFrame principal, rellenando con NaN donde no hay coincidencia.
+
+**4. dropna() vs. fillna():** `dropna()` cuando el dato faltante es imposible o poco confiable de estimar (ej. un nombre de producto faltante). `fillna()` cuando sí existe un criterio razonable para estimar el valor sin perder la fila completa (ej. rellenar un precio con el promedio).
+
+**5. Kernel de Jupyter:** al reabrir un notebook en una sesión nueva, el kernel se reinicia y las variables (como `df`) dejan de existir en memoria, aunque el código siga visible. Hay que volver a correr la celda de carga antes de usar esas variables — o usar "Run All Cells" al reabrir.
+
+---
+
+## Semana 6: Python + Pandas (continuación)
+
+### Día 1 (Lunes) — Fechas en Pandas
+
+**Convertir texto a fecha real:**
+```python
+df["Order Date"] = pd.to_datetime(df["Order Date"])
+```
+Necesario porque Pandas ve la columna como texto plano hasta que se convierte explícitamente — sin esta conversión, `.dt` no funciona (no existe el concepto de "mes" sobre un texto).
+
+**Extraer partes de la fecha:**
+```python
+df["Order Date"].dt.month    # mes (1-12)
+df["Order Date"].dt.year     # año
+df["Order Date"].dt.day      # día
+```
+
+**Agrupar por mes — mismo patrón de GroupBy aplicado a una fecha:**
+```python
+df.groupby(df["Order Date"].dt.month)["Total Profit"].sum()
+```
+
+**Resultado:** Febrero (₡43,000,657.68) es el mes con mayor ganancia total, seguido de Agosto (₡42,400,903.36) — ambos bastante por encima del resto. Septiembre es el mes más bajo (₡19,685,320.91), menos de la mitad que Febrero.
+
+**Equivalencia con lo ya conocido:**
+
+| SQL | Pandas |
+|---|---|
+| `strftime('%m', Fecha)` | `df["Fecha"].dt.month` |
+| `GROUP BY strftime('%m', Fecha)` | `df.groupby(df["Fecha"].dt.month)` |
