@@ -699,3 +699,126 @@ df.groupby(df["Order Date"].dt.month)["Total Profit"].sum()
 |---|---|
 | `strftime('%m', Fecha)` | `df["Fecha"].dt.month` |
 | `GROUP BY strftime('%m', Fecha)` | `df.groupby(df["Fecha"].dt.month)` |
+
+
+Claude finished the response
+Dale, seguimos directo. Bloque 2: pivot_table — el equivalente directo de una tabla dinámica de Excel, pero en código.
+
+La sintaxis:
+
+python
+tabla = df.pivot_table(
+    values="Total Profit",     # qué querés resumir
+    index="Region",             # qué va en las filas (como "Filas" en Excel)
+    columns="Sales Channel",    # qué va en las columnas (como "Columnas" en Excel)
+    aggfunc="mean"               # qué operación aplicar (sum, mean, count...)
+)
+¿Te suena familiar esta estructura? Es literalmente la misma lógica que usaste la semana pasada con groupby(["Region", "Sales Channel"])["Total Profit"].mean() en tu mini-proyecto — pero pivot_table te arma el resultado como una tabla cruzada (Región en filas, Canal en columnas, como una matriz), en vez de una lista larga con combinaciones apiladas.
+
+Ejercicio: recreá exactamente el análisis de tu mini-proyecto de la Semana 5 (¿qué canal de ventas es más rentable por región?), pero esta vez con pivot_table en vez de groupby. Usá values="Total Profit", index="Region", columns="Sales Channel", aggfunc="mean".
+
+Intentalo vos, y después comparamos si el resultado coincide con los números que ya tenías de la semana pasada (Europa Online: 429,836 — Europa Offline: 370,618, etc.).
+
+tabla = df.pivot_table( values="Total Profit", 
+ index="Region",
+ columns="Sales Channel", 
+ aggfunc="mean" 
+ )
+Asi no? y como hago para mostrar la tabla?
+
+La consulta está perfecta, solo te falta el paso final para verla — en Python, cuando guardás algo en una variable (como tabla = ...), no se muestra automáticamente, tenés que pedirlo explícitamente.
+
+En una celda nueva (o al final de la misma celda, en otra línea), escribí simplemente:
+
+python
+tabla
+Eso le dice a Jupyter "mostrame el contenido de esa variable" — vas a ver la tabla cruzada con las regiones en filas y los canales (Offline/Online) en columnas.
+
+Corré eso y contame si los números coinciden con los que ya tenías de la semana pasada — por ejemplo, ¿Europa-Online te sigue dando 429,836 aproximadamente?
+
+1791233837243_image.png
+¡Coinciden exactamente! 🎯 Europa-Online: 429,836.785 — el mismo número que calculaste la semana pasada con groupby. Confirmado que pivot_table y groupby con múltiples columnas te dan el mismo resultado, solo que pivot_table lo presenta como una matriz visual (filas × columnas), mucho más fácil de leer de un vistazo que la lista apilada de groupby.
+
+Esta es exactamente la ventaja que notaste en tu momento con las matrices de Power Pivot en la Semana 2 — y ahora la tenés disponible también en Python, con una sola línea de código.
+
+Con esto cerrás el Bloque 2 y el Día 1 completo del plan de recuperación: visualización con Matplotlib/Seaborn, y pivot_table. Vamos al cierre del día:
+
+README: documentá ambos bloques — los dos gráficos (línea para tendencia temporal, barras para categorías) y el pivot_table con la confirmación de que coincide con groupby.
+
+Commit:
+
+git add .
+git commit -m "Semana 6 dia 1 recuperacion: Matplotlib/Seaborn, pivot_table"
+git push
+¿Armás el README vos esta vez, o te lo doy yo?
+
+dame el readme
+
+Acá tenés el README del día:
+
+markdown
+### Día 2-3 recuperación (Martes-Miércoles de Semana 6) — Visualización y pivot_table
+
+**Matplotlib — gráfico de línea (tendencias temporales):**
+```python
+import matplotlib.pyplot as plt
+
+datos_mes = df.groupby(df["Order Date"].dt.month)["Total Profit"].sum()
+
+plt.plot(datos_mes.index, datos_mes.values)
+plt.title("Ganancia total por mes")
+plt.xlabel("Mes")
+plt.ylabel("Ganancia Total")
+plt.show()
+```
+→ Confirmó visualmente el pico de Febrero ya detectado con números el día anterior, y reveló un segundo pico casi igual de alto en Agosto, con una caída marcada hacia Septiembre (el punto más bajo) — un patrón de "dos picos con un valle" mucho más fácil de ver en el gráfico que leyendo la tabla de 12 números.
+
+**Seaborn — gráfico de barras (categorías sin orden):**
+```python
+import seaborn as sns
+
+datos_region = df.groupby("Region")["Total Profit"].sum()
+
+sns.barplot(x=datos_region.index, y=datos_region.values)
+plt.title("Ganancia total por region")
+plt.xlabel("Region")
+plt.ylabel("Ganancia Total")
+plt.xticks(rotation=90)
+plt.show()
+```
+→ Confirmó visualmente que Europa y Sub-Saharan Africa dominan muy por encima del resto, y North America se ve dramáticamente más chica — mismo patrón ya visto en el mini-proyecto de la Semana 1.
+
+**Por qué línea para meses y barras para regiones:** una línea sugiere progresión continua — tiene sentido para meses porque existe una secuencia temporal real. Las regiones no tienen ningún orden natural entre sí, así que conectarlas con una línea sugeriría falsamente una tendencia inexistente. Las barras muestran cada categoría como un valor independiente, sin implicar orden.
+
+**Ajuste propio:** cambié la rotación de las etiquetas de 45° a 90° porque los nombres de región son largos y se superponían — mejor legibilidad.
+
+---
+
+**pivot_table — tabla dinámica de Excel, en código:**
+```python
+tabla = df.pivot_table(
+    values="Total Profit",
+    index="Region",
+    columns="Sales Channel",
+    aggfunc="mean"
+)
+tabla
+```
+
+Recreé el mini-proyecto de la Semana 5 (¿qué canal es más rentable por región?) con `pivot_table` en vez de `groupby`, y los resultados coincidieron exactamente (ej. Europa-Online: 429,836.785 en ambos casos).
+
+**Ventaja de pivot_table sobre groupby con múltiples columnas:** mismo resultado, pero presentado como matriz visual (filas × columnas) en vez de lista apilada — mucho más fácil de leer de un vistazo, igual que ya había notado con las matrices de Power Pivot en la Semana 2.
+
+**Equivalencias consolidadas:**
+
+| Excel | SQL | Pandas |
+|---|---|---|
+| Tabla dinámica | GROUP BY + múltiples columnas | `pivot_table()` |
+| Gráfico dinámico | — | Matplotlib / Seaborn |
+
+
+
+
+
+
+
