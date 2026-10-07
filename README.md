@@ -816,9 +816,86 @@ Recreé el mini-proyecto de la Semana 5 (¿qué canal es más rentable por regi�
 | Tabla dinámica | GROUP BY + múltiples columnas | `pivot_table()` |
 | Gráfico dinámico | — | Matplotlib / Seaborn |
 
+### Día 4 (Jueves) recuperación — APIs y JSON con requests
+
+**¿Qué es una API?** Una forma de pedirle datos a otro sistema por internet directamente desde el código, en vez de cargar un archivo local. Es parecido a una consulta SQL, pero la base de datos vive en un servidor remoto.
+
+**¿Qué es JSON?** El formato en que las APIs suelen devolver datos. Se parece a un diccionario de Python (`{"clave": valor}`), y varios registros vienen como lista de diccionarios.
+
+**Pedir datos con `requests`:**
+```python
+import requests
+import pandas as pd
+
+respuesta = requests.get("https://jsonplaceholder.typicode.com/users")
+respuesta.status_code     # 200 = el servidor respondió bien
+datos = respuesta.json()  # convierte el JSON a listas y diccionarios de Python
+df_usuarios = pd.DataFrame(datos)
+```
+
+**JSON anidado:** la columna `address` venía con un diccionario completo adentro de cada celda (calle, ciudad, coordenadas), así que no se podía filtrar ni agrupar por ciudad. Se resuelve con `json_normalize`, que aplana todos los niveles en columnas:
+```python
+df_plano = pd.json_normalize(datos)
+df_plano[["name", "address.city", "company.name"]]
+```
+Las columnas anidadas quedan con nombres unidos por punto (`address.city`, `address.geo.lat`), y hay que acceder a ellas entre comillas.
+
+**Ejercicio propio:** con la API de `posts` (100 publicaciones), usé `groupby` para contar cuántas escribió cada usuario:
+```python
+posts.groupby("userId")["id"].count()
+```
+→ Cada uno de los 10 usuarios escribió exactamente 10 publicaciones.
+
+**Error que me enseñó algo:** al principio usé `.sum()` en vez de `.count()` y obtuve 55, 155, 255... 955. Esos números salían de sumar los **ids** (el usuario 1 tiene los ids 1 a 10, el usuario 2 los ids 11 a 20, etc.), no de contar posts. Un id es una etiqueta, no una cantidad, así que sumarlo no tiene sentido. La función de agregación tiene que coincidir con la pregunta: "¿cuánto suma?" pide `.sum()` y "¿cuántas hay?" pide `.count()`.
+
+**Conclusión:** los datos que vienen de una API, una vez convertidos a DataFrame, se trabajan exactamente igual que un CSV: filtrar, agrupar, graficar.
 
 
+### Mini-proyecto Semana 6 — ¿Qué tipo de producto es más rentable y cómo cambia según el canal de venta?
 
+**Metodología:** `groupby` + `.agg()` para medir cada tipo de producto con tres métricas (suma, promedio y conteo de ganancia), `pivot_table` para cruzarlo con el canal de venta, y un gráfico de barras agrupadas para verlo de un vistazo.
+
+**Paso 1: ganancia total, promedio y cantidad de ventas por tipo de producto:**
+```python
+df.groupby("Item Type")["Total Profit"].agg(["sum", "mean", "count"]).sort_values("sum", ascending=False)
+```
+
+**Paso 2: cruce con el canal de venta:**
+```python
+tabla_R = df.pivot_table(
+    values="Total Profit",
+    index="Item Type",
+    columns="Sales Channel",
+    aggfunc="mean"
+)
+```
+
+**Paso 3: gráfico de barras agrupadas:**
+```python
+tabla_R.plot(kind="bar")
+plt.title("Ganancia promedio por tipo de producto y canal")
+plt.ylabel("Ganancia promedio")
+plt.xticks(rotation=90)
+plt.show()
+```
+
+**Hallazgos:**
+
+Cosmetics es el producto más rentable: genera ₡74.1M de ganancia total (casi el 19% de toda la ganancia del dataset) y también lidera en promedio por venta, con ₡987,748, seguido de Household (₡798,500). Fruits queda último con ₡855,851 en total y apenas ₡12,226 por venta, unas 80 veces menos que Cosmetics, aunque tiene un volumen casi igual (70 ventas contra 75). La diferencia no viene de cuánto se vende, sino de cuánto deja cada venta, y eso se relaciona con el precio del producto (en las primeras filas del dataset, Cosmetics tenía un precio unitario de 437.20 y Fruits de 9.33).
+
+El canal de venta importa mucho menos que el tipo de producto. Cosmetics lidera tanto en Offline (₡982,278) como en Online (₡997,473), y el ranking general casi no cambia entre canales. La diferencia más grande en colones es la de Household, con Offline por encima de Online por unos ₡129,000 (₡872,402 contra ₡743,073). En términos relativos, Fruits es el que más cambia: Online rinde un 35% menos que Offline (₡9,579 contra ₡14,727). Cereal es el caso inverso, con Online por encima de Offline por unos ₡57,000.
+
+Vender mucho no garantiza rentabilidad. Beverages es el producto con más ventas del dataset (101) y es el penúltimo en ganancia total, con ₡7.9M y un promedio de apenas ₡78,285 por venta. Para decidir qué productos priorizar, el volumen de ventas por sí solo no alcanza: hay que mirarlo junto con la ganancia por venta.
+
+**Aprendizajes técnicos del proyecto:**
+- En una cadena de operaciones el orden importa: primero `groupby`, después `.agg()` para resumir, y por último `.sort_values()`, porque la columna `sum` recién existe después de resumir.
+- `.sort_values()` ordena de menor a mayor por defecto, y para el orden contrario hay que agregar `ascending=False`.
+- Dentro de una función, los argumentos se escriben con `=` y separados por comas (`values="Total Profit",`), no con `:`.
+- Hay que usar el DataFrame correcto: `df` (las ventas) y no `posts` (el de la API), porque cada uno tiene columnas distintas.
+- `NameError: name 'plt' is not defined` pasa cuando el kernel se reinició y los imports quedaron fuera de la memoria, y se resuelve volviendo a correr la celda de `import`.
+- Para medir una "diferencia" entre canales conviene aclarar si es en valores absolutos o en porcentaje, porque cada forma de medirla puede señalar un producto distinto (Household en colones, Fruits en porcentaje).
+
+**Conclusión de la semana:** el mini-proyecto integró filtrado, GroupBy con múltiples métricas, `pivot_table` y visualización en un mismo análisis, con la misma estructura (pregunta de negocio, datos, gráfico y conclusión) que se repite en cada proyecto del portafolio.
 
 
 
