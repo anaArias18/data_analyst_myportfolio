@@ -898,4 +898,27 @@ Vender mucho no garantiza rentabilidad. Beverages es el producto con más ventas
 **Conclusión de la semana:** el mini-proyecto integró filtrado, GroupBy con múltiples métricas, `pivot_table` y visualización en un mismo análisis, con la misma estructura (pregunta de negocio, datos, gráfico y conclusión) que se repite en cada proyecto del portafolio.
 
 
+## ✅ Repaso final — Semana 6 completa
 
+**1. Por qué convertir fechas con `pd.to_datetime()`:** Pandas lee `Order Date` como texto plano (tipo `object`) aunque se vea como fecha, y el acceso `.dt` solo existe para columnas de tipo fecha real (`datetime64`). Sin la conversión, `.dt.month` da error (`Can only use .dt accessor with datetimelike values`).
+
+**2. Gráfico de línea vs. barras:** la línea conecta los puntos y sugiere una progresión continua, así que solo tiene sentido cuando los datos tienen un orden real (como los meses). Las barras muestran cada categoría como un valor independiente, y se usan cuando no hay un orden natural (regiones, productos, canales).
+
+**3. `groupby` con dos columnas vs. `pivot_table`:** dan exactamente los mismos números (se comprobó con Europa-Online: 429,836.785 en ambos). La diferencia es la forma: `groupby` devuelve formato largo (una fila por combinación) y `pivot_table` devuelve formato ancho, como matriz de filas × columnas, más fácil de leer de un vistazo.
+
+**4. API, JSON y `json_normalize`:**
+- Una API es una forma de pedirle datos a otro sistema por internet directamente desde el código.
+- JSON es el formato en que las APIs suelen devolver esos datos (parecido a un diccionario de Python).
+- `pd.json_normalize()` toma los diccionarios que vienen dentro de otras columnas (como `address`) y los abre en columnas propias (`address.city`, `address.geo.lat`), para poder filtrar y agrupar por ellas.
+
+**5. `.sum()` vs. `.count()` sobre un id:** `.sum()` sumó los valores de la columna `id` (el usuario 1 tiene los ids 1 a 10 y suma 55, el usuario 2 los ids 11 a 20 y suma 155, y así). Un id es una etiqueta y no una cantidad, así que sumarlo no significa nada. La función tiene que coincidir con la pregunta: "¿cuántas hay?" pide `.count()`.
+
+**6. Orden en una cadena `groupby` + `.agg()` + `.sort_values()`:** primero se agrupa, después se resume y por último se ordena, porque la columna `sum` solo existe después de `.agg()`. Si se ordena antes, se están ordenando las 1000 filas originales y no los grupos.
+
+**Patrón que se repitió en el repaso:** el qué lo tenía claro, y lo que más conviene reforzar es el porqué (qué pasa si no se hace, por qué funciona así). Es justo lo que se pregunta en una entrevista.
+
+---
+
+## Semana 6 completa
+
+Fechas en Pandas (`to_datetime`, `.dt.month`), visualización con Matplotlib y Seaborn, `pivot_table`, APIs y JSON con `requests` y `json_normalize`, y un mini-proyecto que integró GroupBy, pivot y gráficos en un solo análisis. Con esto se cierra el bloque de Python. Próximo bloque: Power BI + DAX (Semanas 7-8).
