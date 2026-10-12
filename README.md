@@ -922,3 +922,65 @@ Vender mucho no garantiza rentabilidad. Beverages es el producto con más ventas
 ## Semana 6 completa
 
 Fechas en Pandas (`to_datetime`, `.dt.month`), visualización con Matplotlib y Seaborn, `pivot_table`, APIs y JSON con `requests` y `json_normalize`, y un mini-proyecto que integró GroupBy, pivot y gráficos en un solo análisis. Con esto se cierra el bloque de Python. Próximo bloque: Power BI + DAX (Semanas 7-8).
+
+# Semana 7 — Power BI: Primer reporte interactivo
+
+## 📌 Descripción del proyecto
+
+Este proyecto corresponde a la primera práctica de Power BI del plan de aprendizaje para Analista de Datos Junior.
+
+El objetivo es importar un archivo CSV, preparar los datos con Power Query y construir un reporte interactivo utilizando visualizaciones básicas.
+
+## 🎯 Objetivos de aprendizaje
+
+* Reconocer las vistas Informe, Datos y Modelo de Power BI Desktop.
+* Importar archivos CSV.
+* Limpiar y transformar datos mediante Power Query.
+* Revisar tipos de datos, valores nulos y duplicados.
+* Crear tarjetas, gráficos de barras, gráficos de líneas y segmentadores.
+* Comprender cómo interactúan los filtros con las visualizaciones.
+* Documentar y versionar el proyecto utilizando Git.
+
+## 🛠️ Herramientas utilizadas
+
+* Microsoft Power BI Desktop.
+* Power Query.
+* Git.
+* GitHub.
+
+
+## 🧹 Preparación de los datos
+
+Las transformaciones realizadas en Power Query fueron:
+
+* [ ] Revisión de los nombres y tipos de datos.
+* [ ] Identificación y tratamiento de valores nulos.
+* [ ] Revisión de registros duplicados.
+* [ ] Corrección de formatos de fechas y números, cuando fue necesario.
+* [ ] Verificación de errores antes de cargar los datos.
+
+Las transformaciones aplicadas se pueden consultar en los pasos aplicados de Power Query.
+
+## 📊 Visualizaciones
+
+El reporte incluye las siguientes visualizaciones, según las columnas disponibles:
+
+* **Tarjetas:** resumen de indicadores principales.
+* **Gráfico de barras:** comparación entre categorías.
+* **Gráfico de líneas:** evolución temporal de una medida.
+* **Segmentador:** filtro interactivo por categoría, fecha u otra dimensión.
+
+
+## 📚 Aprendizajes
+
+Durante esta práctica aprendí a importar y preparar datos con Power Query, reconocer las principales vistas de Power BI y construir visualizaciones básicas para explorar información.
+
+Esta práctica constituye la base para las siguientes etapas del proyecto: modelado de datos, creación de medidas DAX y desarrollo de un dashboard profesional.
+
+## 🚀 Próximos pasos
+
+* Mejorar el diseño y la legibilidad del reporte.
+* Aprender a crear relaciones entre tablas.
+* Introducir medidas DAX.
+* Incorporar indicadores de negocio relevantes.
+* Documentar conclusiones basadas en los datos reales.
