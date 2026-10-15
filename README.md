@@ -984,3 +984,59 @@ Esta práctica constituye la base para las siguientes etapas del proyecto: model
 * Introducir medidas DAX.
 * Incorporar indicadores de negocio relevantes.
 * Documentar conclusiones basadas en los datos reales.
+
+### Días 2-3 (Martes-Miércoles) Semana 7: Modelo en estrella y DAX básico
+
+**Modelo en estrella con Northwind**
+
+La tabla de hechos es `DetallesPedido` (renombrada `Ventas`), no `Pedidos`. La razón es la **granularidad**: una fila de `DetallesPedido` es una línea de pedido (361 filas), el nivel más fino, y una fila de `Pedidos` es un pedido completo (120 filas). Primero había elegido `Pedidos` porque tenía la fecha y el cliente.
+
+Con `Pedidos` como tabla aparte, el modelo queda como cadena (copo de nieve). Para convertirlo en estrella usé Merge en Power Query:
+- `DetallesPedido` + `Pedidos` (por `PedidoID`, externa izquierda) para traer `FechaPedido` y `ClienteID`.
+- `Productos` + `Categorias` (por `CategoriaID`) para traer `NombreCategoria`.
+- `Pedidos` y `Categorias` quedaron con la carga desactivada, y no se borraron porque `Ventas` y `Productos` dependen de ellas.
+
+Relaciones: `Clientes → Ventas` y `Productos → Ventas`, de uno a varios, con filtro en una sola dirección (de la dimensión hacia los hechos). Se comprobó con un recuento por categoría que sumó 361.
+
+**DAX básico**
+
+Columna calculada (se evalúa fila por fila y se guarda):
+```
+Importe = Ventas[Cantidad] * RELATED(Productos[PrecioUnitario])
+```
+
+Medidas (se calculan según el contexto del visual):
+```
+Total Ventas = SUM(Ventas[Importe])
+Pedidos = DISTINCTCOUNT(Ventas[PedidoID])
+Ticket Promedio = DIVIDE([Total Ventas], [Pedidos])
+```
+
+Valores de control: Total Ventas ₡51,283,849.07, Pedidos 120, Ticket Promedio ₡427,365.41. Coinciden con el cálculo hecho en SQL sobre la misma base.
+
+**Por qué el ticket promedio es una medida y no una columna:** una columna guardaría un número por fila, y promediar esos números daría un resultado incorrecto. Además, una columna no reacciona a los filtros del informe, y una medida sí.
+
+**Hallazgo: medidas no aditivas.** En la tabla por categoría, `Pedidos` suma 327 y el total dice 120. Un pedido puede tener productos de varias categorías, así que `DISTINCTCOUNT` lo cuenta una vez en cada categoría, y en el total una sola vez. `Total Ventas`, en cambio, sí suma bien al total.
+
+**Hallazgo de negocio:** Lácteos tiene el mayor total de ventas (₡8.16M) y el mayor ticket por pedido (₡226,567), con apenas 36 pedidos. Condimentos tiene el ticket más bajo (₡103,777). El ticket de una categoría es lo que ese producto aporta por pedido que lo incluye, y no es comparable con el ticket general.
+
+### Día 4 (Jueves) Semana 7: CALCULATE y contexto de filtro
+
+**Contexto de filtro:** el conjunto de filtros que afectan a una medida en un momento dado (la fila de la tabla, un segmentador, otros filtros del informe). `CALCULATE` es la función que modifica ese contexto.
+
+```
+Ventas Bebidas = CALCULATE([Total Ventas], Productos[NombreCategoria] = "Bebidas")
+Ventas Todas Las Categorias = CALCULATE([Total Ventas], ALL(Productos[NombreCategoria]))
+% del Total = DIVIDE([Total Ventas], [Ventas Todas Las Categorias])
+```
+
+**Qué comprobé en la tabla por categoría:**
+- `Ventas Bebidas` muestra ₡7,175,243.95 en todas las filas (incluida Carnes y el Total). Cuando `CALCULATE` filtra una columna que el visual ya filtra, **reemplaza** el filtro de la fila y no lo combina. Si se combinaran (Carnes Y Bebidas), el resultado estaría vacío.
+- Si el filtro es sobre **otra** columna, sí se suma al de la fila y se aplican los dos.
+- `ALL` quita el filtro, y por eso sirve de denominador para calcular el porcentaje del total.
+
+**Por qué `% del Total` da 100% en la fila Total:** en esa fila no hay filtro de categoría, así que el numerador (`Total Ventas`) y el denominador (`ALL` sobre algo que no estaba filtrado) valen lo mismo: 51.28M ÷ 51.28M. No es un promedio, es una proporción.
+
+**Hallazgo de negocio:** Lácteos (15.90%), Repostería (15.18%) y Granos y Cereales (14.49%) concentran el 45.6% de las ventas con 3 de las 8 categorías. Condimentos es la más baja (8.70%).
+
+**Error que me enseñó algo:** escribí las tres medidas juntas en la misma barra de fórmulas y dio error. Cada medida se crea por separado (Inicio → Nueva medida), y el orden importa cuando una medida usa a otra.
