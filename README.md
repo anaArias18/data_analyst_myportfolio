@@ -1040,3 +1040,46 @@ Ventas Todas Las Categorias = CALCULATE([Total Ventas], ALL(Productos[NombreCate
 **Hallazgo de negocio:** Lácteos (15.90%), Repostería (15.18%) y Granos y Cereales (14.49%) concentran el 45.6% de las ventas con 3 de las 8 categorías. Condimentos es la más baja (8.70%).
 
 **Error que me enseñó algo:** escribí las tres medidas juntas en la misma barra de fórmulas y dio error. Cada medida se crea por separado (Inicio → Nueva medida), y el orden importa cuando una medida usa a otra.
+
+### Día 5 (Viernes) Semana 7: DAX de tiempo
+
+**Dataset:** `1000 Sales Records.csv`, con pedidos de 2010 a 2017. Se usó este y no Northwind porque Northwind solo cubre de enero a agosto de 2026, y una comparación contra el año anterior habría quedado vacía.
+
+**Por qué hace falta una tabla de calendario:** `Order Date` solo tiene las fechas en que hubo ventas, con huecos. Las funciones de tiempo necesitan una lista continua de días y años completos para saber qué significa "el mismo período del año anterior". El calendario es una dimensión más del modelo en estrella, conectada a los hechos por la fecha.
+
+**Construcción:**
+```
+Calendario = CALENDARAUTO()
+Anio = YEAR(Calendario[Date])
+MesNum = MONTH(Calendario[Date])
+```
+La tabla se marcó como tabla de fechas, y se relacionó `Calendario[Date]` con `Ventas[Order Date]` (de uno a varios, con filtro de la dimensión hacia los hechos).
+
+**Medidas:**
+```
+Ganancia = SUM(Ventas[Total Profit])
+Ganancia Acumulada Anio = TOTALYTD([Ganancia], Calendario[Date])
+Ganancia Anio Anterior = CALCULATE([Ganancia], SAMEPERIODLASTYEAR(Calendario[Date]))
+Variacion % = DIVIDE([Ganancia] - [Ganancia Anio Anterior], [Ganancia Anio Anterior])
+```
+`SAMEPERIODLASTYEAR` va dentro de `CALCULATE` porque es `CALCULATE` quien modifica el contexto de filtro. `TOTALYTD` suma desde el 1 de enero hasta la fecha del contexto.
+
+**Resultados por año:**
+
+| Año | Ganancia | Variación |
+|---|---|---|
+| 2010 | ₡52,929,570 | (sin año anterior) |
+| 2011 | ₡43,634,278 | -18% |
+| 2012 | ₡50,500,114 | +16% |
+| 2013 | ₡53,775,796 | +6% |
+| 2014 | ₡58,053,499 | +8% |
+| 2015 | ₡52,924,834 | -9% |
+| 2016 | ₡50,272,789 | -5% |
+| 2017 | ₡29,111,731 | -42% (año incompleto) |
+
+**Comprobaciones que hice:**
+- En 2010 `Ganancia Año Anterior` y `Variación %` quedan vacíos, porque no existe 2009 en los datos. `DIVIDE` devuelve vacío cuando el denominador está vacío.
+- El valor de `Ganancia Año Anterior` de cada año es igual a la `Ganancia` del año de la fila anterior.
+- La ganancia total (₡391,202,611.56) coincide con la que calculé en Pandas en la Semana 5: tres herramientas distintas, el mismo número.
+
+**Hallazgo: el -42% de 2017 no es
