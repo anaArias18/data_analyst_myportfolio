@@ -1083,3 +1083,57 @@ Variacion % = DIVIDE([Ganancia] - [Ganancia Anio Anterior], [Ganancia Anio Anter
 - La ganancia total (₡391,202,611.56) coincide con la que calculé en Pandas en la Semana 5: tres herramientas distintas, el mismo número.
 
 **Hallazgo: el -42% de 2017 no es
+
+
+## Semana 7 (cierre) y Semana 8 (lunes y martes): Power BI
+
+### Mini-proyecto Power BI: ¿Cómo evolucionó la ganancia año a año y qué regiones la impulsan?
+
+**Dataset:** `1000 Sales Records.csv` (2010 a 2017), con tabla de calendario y las medidas `Ganancia`, `Ganancia Año Anterior` y `Variación %`.
+
+**Decisión de análisis:** los datos de 2017 terminan el 26 de julio, así que se excluyó ese año con un filtro de página, y la nota quedó visible en el dashboard. Comparar un año de 7 meses contra uno de 12 mostraba un -42% que no era una caída real. La forma más correcta, que queda como desafío, es comparar el mismo período (enero a julio) en ambos años.
+
+**Hallazgos (2010-2016, ganancia total ₡362.09M):**
+- La ganancia tocó fondo en 2011 (₡43.6M, -18% frente a 2010), se recuperó hasta el máximo de 2014 (₡58.1M) y bajó en 2015 (-9%) y 2016 (-5%). La tendencia reciente es descendente.
+- Europa y Sub-Saharan Africa lideran y concentran el 53.7% de la ganancia, así que el negocio depende en gran parte de dos regiones.
+- **La caída de 2011 (-₡9.3M) la explican Central America and the Caribbean (-73%, -₡4.8M) y Sub-Saharan Africa (-37%, -₡4.5M).** Juntas restan casi exactamente la caída neta. Europa, la región líder, cayó solo un 6%. Que una región lidere en ganancia no significa que explique los movimientos del total.
+- Central America and the Caribbean es la más volátil: pasó de ₡9.9M en 2015 a ₡0.3M en 2016 (-97%). Puede ser un riesgo del negocio o un problema de datos, y vale la pena investigarlo.
+
+**Aprendizajes del proyecto:**
+- Una comparación entre períodos hay que verificarla antes de interpretarla. La tarjeta con la fecha máxima mostró que el 2017 estaba incompleto.
+- Una impresión visual hay que confirmarla con números. En el drill-through leí que Central America y Australia habían subido en 2011, y la matriz de números mostró que fue al revés: subieron en 2012 (rebote). Cada página de detalle ajusta su propia escala, y eso exagera las regiones chicas.
+- Un segmentador activo cambia todo el dashboard. Con "Online" seleccionado la tarjeta mostraba ₡169M en vez de ₡362M, y la línea parecía otra. Al revisar un número hay que mirar primero qué filtros están puestos.
+- La nota de 2017 y los títulos con el hallazgo tienen que estar bien escritos y legibles, porque son lo primero que se lee.
+
+---
+
+### Repaso de la Semana 7
+
+1. **Hechos y dimensión:** la tabla de hechos contiene las medidas numéricas y las claves foráneas, y es el nivel más detallado (granularidad). La dimensión contiene atributos y su clave primaria. En Northwind los hechos son `DetallesPedido` (una fila por línea de pedido, 361) y no `Pedidos` (una fila por pedido, 120).
+2. **Columna calculada contra medida:** la columna se evalúa fila por fila al cargar y se guarda. La medida se calcula al vuelo según el contexto de filtro y no guarda nada por fila.
+3. **`CALCULATE`:** evalúa una expresión bajo un contexto de filtro nuevo. Si filtra una columna que el visual ya filtra, **reemplaza** el filtro de la fila. Por eso `Ventas Bebidas` mostraba lo mismo en todas las filas.
+4. **Calendario:** las funciones de tiempo necesitan una lista continua de días, con años completos y marcada como tabla de fechas, para saber qué es "el mismo período".
+5. **DAX contra Power Query:** Power Query (lenguaje M) prepara los datos antes de cargarlos. DAX trabaja sobre el modelo ya cargado (medidas, columnas y tablas calculadas). Escribir `CALENDARAUTO()` en Power Query creó una consulta llamada "Tabla" con el texto de la fórmula.
+
+---
+
+### Semana 8, lunes: diseño de dashboard
+
+Principios aplicados: un mensaje por página, jerarquía visual, títulos que dicen el hallazgo, un color base y uno de acento, y menos ruido.
+- Título de página con el hallazgo y nota de 2017 legible.
+- Títulos de gráficos que dicen la conclusión (con "todos los canales" cuando corresponde).
+- Línea recta con marcadores, porque hay un dato por año y una curva suavizada inventa valores.
+- Color de acento solo en Europa y Sub-Saharan Africa, sin cuadrículas y con visuales alineados.
+
+### Semana 8, martes: interactividad
+
+- **Drill-through:** una página "Detalle de región" con `Ventas[Region]` en "Obtener detalles". Con clic derecho sobre una región se llega al detalle filtrado. Los filtros de página no se heredan, y hay que excluir 2017 también ahí.
+- **Segmentadores sincronizados** entre páginas (Vista → Sincronizar segmentadores).
+- **Formato condicional** sobre `Variación %`, con reglas de color de fuente. En las reglas, "Porcentaje" mide la posición dentro del rango de la columna, y no el valor, por eso hay que usar **Número**:
+
+| Regla | Condición | Color |
+|---|---|---|
+| 1 | `>= -1000` y `< 0` | Rojo |
+| 2 | `>= 0` y `<= 1000` | Verde |
+
+Resultado: 2011, 2015 y 2016 en rojo; 2012, 2013 y 2014 en verde.
