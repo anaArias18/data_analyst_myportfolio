@@ -63,16 +63,21 @@ Repositorio de práctica y proyectos del plan de aprendizaje de 13 semanas para 
 ---
 
 ## 📂 Archivos en este repositorio
-
-
----
+| Semana | Proyecto | Herramientas | Pregunta que responde |
+|---|---|---|---|
+| 1 | Ganancia y margen por región | Excel, Power Query | ¿Qué región genera más ganancia y con qué margen? |
+| 2 | Categoría por vendedor | Power Query, Power Pivot | ¿Qué categoría genera más ingresos y varía por vendedor? |
+| 3 | Gasto por cliente y categoría | SQL | ¿Qué clientes gastaron más y en qué categorías? |
+| 4 | Producto más caro contra el promedio | SQL (CTE, Window Functions) | ¿Cómo se compara el producto más caro de cada categoría con su promedio? |
+| 5 | Canal de venta por región | Python, Pandas | ¿Qué canal es más rentable en cada región? |
+| 6 | Rentabilidad por producto y canal | Python, Pandas, Matplotlib | ¿Qué productos son más rentables y cambia según el canal? |
+| 7-8 | Ganancia año a año por región | Power BI, DAX | ¿Cómo evolucionó la ganancia y qué regiones la impulsan? |
+| 8 | Concentración de ventas por cliente y país | Power BI, DAX | ¿Qué tan concentradas están las ventas en pocos clientes? |
 
 ## 🎯 Próximos pasos
 
-- Semana 1 (cierre): mini-proyecto integrador (sábado) + repaso (domingo)
-- Semana 2: Power Query avanzado
-- Semanas 3-4: SQL intensivo
-
+- Semanas 9-10: estadística aplicada y ETL.
+- Semanas 11-13: proyecto final de portafolio, CV y LinkedIn. 
 ____________________________
 
 ## Semana 2
@@ -949,26 +954,25 @@ El objetivo es importar un archivo CSV, preparar los datos con Power Query y con
 * GitHub.
 
 
-## 🧹 Preparación de los datos
+## Dataset
 
-Las transformaciones realizadas en Power Query fueron:
+- Archivo: `1000 Sales Records.csv`.
+- Origen: dataset público de ventas internacionales, publicado en un repositorio de GitHub (HariVM/Analytics).
+- Descripción: 1,000 ventas con región, país, tipo de producto, canal de venta, fechas, unidades, precio, costo e ingresos y ganancia.
+- Filas y columnas: 1,000 filas y 14 columnas, sin cambios después de la limpieza.
 
-* [ ] Revisión de los nombres y tipos de datos.
-* [ ] Identificación y tratamiento de valores nulos.
-* [ ] Revisión de registros duplicados.
-* [ ] Corrección de formatos de fechas y números, cuando fue necesario.
-* [ ] Verificación de errores antes de cargar los datos.
+## Preparación de los datos
 
-Las transformaciones aplicadas se pueden consultar en los pasos aplicados de Power Query.
+- [x] Revisión de los nombres y tipos de datos.
+- [x] Identificación de valores nulos (ninguno).
+- [x] Revisión de registros duplicados (ninguno en `Order ID`).
+- [x] Corrección de formatos de fechas y números, cuando fue necesario.
+- [x] Verificación de errores antes de cargar los datos.
 
-## 📊 Visualizaciones
+## Principales hallazgos
 
-El reporte incluye las siguientes visualizaciones, según las columnas disponibles:
-
-* **Tarjetas:** resumen de indicadores principales.
-* **Gráfico de barras:** comparación entre categorías.
-* **Gráfico de líneas:** evolución temporal de una medida.
-* **Segmentador:** filtro interactivo por categoría, fecha u otra dimensión.
+1. La ganancia total del dataset es de ₡391.2 millones.
+2. Europa (₡106.8M) y Sub-Saharan Africa (₡101.7M) son las regiones con más ganancia.
 
 
 ## 📚 Aprendizajes
@@ -1137,3 +1141,29 @@ Principios aplicados: un mensaje por página, jerarquía visual, títulos que di
 | 2 | `>= 0` y `<= 1000` | Verde |
 
 Resultado: 2011, 2015 y 2016 en rojo; 2012, 2013 y 2014 en verde.
+
+### Semana 8, miércoles: DAX para dashboards
+
+**Comparación del mismo período.** Para comparar un año parcial de forma justa hay que limitar ambos años a la misma ventana de fechas (del 1 de enero al 26 de julio). La fecha de corte se calcula con una medida, y no se escribe a mano:
+
+```
+Fecha Corte = CALCULATE(MAX(Ventas[Order Date]), ALL(Ventas), ALL(Calendario))
+
+Ganancia Mismo Periodo =
+VAR Corte = [Fecha Corte]
+VAR MesDia = MONTH(Corte) * 100 + DAY(Corte)
+RETURN
+CALCULATE([Ganancia], FILTER(Calendario, MONTH(Calendario[Date]) * 100 + DAY(Calendario[Date]) <= MesDia))
+
+Ganancia Mismo Periodo Anio Ant = CALCULATE([Ganancia Mismo Periodo], SAMEPERIODLASTYEAR(Calendario[Date]))
+Variacion Mismo Periodo = DIVIDE([Ganancia Mismo Periodo] - [Ganancia Mismo Periodo Anio Ant], [Ganancia Mismo Periodo Anio Ant])
+```
+`ALL` en `Fecha Corte` evita que el corte cambie según el año de cada fila. `MesDia` convierte el 26 de julio en 726 para poder comparar mes y día en un solo número.
+
+**Resultado:** comparado contra el mismo período, 2017 muestra **+4.70%** (₡29.11M contra ₡27.80M), y no el -42% de la comparación contra el año completo. La conclusión cambió por completo. Con 7 meses de datos y una variación anual histórica de entre -18% y +16%, ese 4.70% está dentro del ruido normal: 2017 viene a un ritmo similar al de 2016.
+
+**Título dinámico:** una medida de texto con `SELECTEDVALUE(Ventas[Sales Channel], "todos los canales")` conectada al título del visual, que cambia sola con el segmentador de canal.
+
+**`RANKX`:** `Ranking Region = RANKX(ALL(Ventas[Region]), [Ganancia], , DESC)`. `ALL` hace que el ranking compare contra todas las regiones aunque la fila esté filtrada.
+
+**Aprendizaje:** el método importa tanto como el dato. El mismo dataset dio -42% o +4.7% según cómo se armó la comparación.
