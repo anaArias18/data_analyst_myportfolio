@@ -1167,3 +1167,148 @@ Variacion Mismo Periodo = DIVIDE([Ganancia Mismo Periodo] - [Ganancia Mismo Peri
 **`RANKX`:** `Ranking Region = RANKX(ALL(Ventas[Region]), [Ganancia], , DESC)`. `ALL` hace que el ranking compare contra todas las regiones aunque la fila esté filtrada.
 
 **Aprendizaje:** el método importa tanto como el dato. El mismo dataset dio -42% o +4.7% según cómo se armó la comparación.
+
+## Semana 8 (cierre): repaso y certificación PL-300
+
+### Repaso de la Semana 8
+
+1. **Comparación justa del 2017:** el -42% comparaba 7 meses (datos hasta el 26/07/2017) contra los 12 de 2016, y medía el tamaño de la ventana, no el negocio. Con el mismo período (enero a julio) la variación fue **+4.70%**.
+2. **`ALL(Clientes[NombreCliente])` contra `ALL(Clientes)`:** con una sola columna, el filtro de país seguía activo y el ranking se calculaba solo dentro del país seleccionado. Con la tabla entera el ranking es global.
+3. **`RANKX` y la fila Total:** en la fila Total hay todos los clientes juntos, y su suma es mayor que cualquier cliente individual, por eso `RANKX` le asignaba la posición 1. Se arregla con `HASONEVALUE`.
+4. **Drill-through:** abre una página de detalle enfocada en el dato elegido. Los filtros de página no se heredan entre páginas, por eso hubo que excluir 2017 de nuevo en la de detalle.
+5. **Título dinámico:** una medida de texto (`SELECTEDVALUE`) conectada al título del visual. Resolvió que el título dijera "todos los canales" aunque el segmentador mostrara solo Online.
+6. **Principios de diseño:** un mensaje por página (título con el hallazgo), color con propósito (uno base y uno de acento), y menos ruido (sin cuadrículas, todo alineado).
+
+### Certificación PL-300 (diagnóstico)
+
+El examen tiene cuatro áreas: preparar los datos, modelar, visualizar y analizar, y administrar y proteger Power BI. Costo, puntaje de aprobación y porcentajes por área se consultan en la guía oficial de Microsoft, porque cambian.
+
+| Área | Cubierto | Por reforzar |
+|---|---|---|
+| Preparar los datos | Power Query a fondo (Merge, Append, parámetros, limpieza) | Otros orígenes de datos, optimización de consultas |
+| Modelar | Esquema en estrella, relaciones, medidas, `CALCULATE`, calendario, `RANKX` | Jerarquías, varios a varios, rendimiento |
+| Visualizar y analizar | Diseño, segmentadores, drill-through, formato condicional | Tooltips personalizados, marcadores, visuales de análisis |
+| Administrar y proteger | Nada todavía | Power BI Service, workspaces, actualización programada, seguridad por filas |
+
+**Plan:** terminar las Semanas 9-13 y después estudiar unas 3 o 4 semanas. Usar antes la evaluación de práctica gratuita de Microsoft Learn como diagnóstico.
+
+---
+
+## Semana 9: estadística aplicada
+
+### Día 1 (Lunes) — Estadística descriptiva
+
+**Tendencia central y dispersión:**
+- **Media:** el promedio, que se mueve mucho con valores extremos.
+- **Mediana:** el valor del medio, que casi no se mueve con valores extremos.
+- **Desviación estándar:** cuánto se alejan los datos de la media, en promedio.
+- **Cuartiles (Q1, mediana, Q3):** el 25%, 50% y 75% de los datos quedan por debajo.
+
+```python
+df["Total Profit"].describe()    # count, mean, std, min, 25%, 50%, 75%, max
+df["Total Profit"].median()
+pd.options.display.float_format = '{:,.2f}'.format   # evita la notación científica
+```
+
+**Resultados de `Total Profit` (1,000 ventas):**
+
+| Medida | Valor |
+|---|---|
+| Media | ₡391,203 |
+| Mediana | ₡277,226 |
+| Desviación estándar | ₡383,640 |
+| Mínimo / Máximo | ₡533 / ₡1,726,181 |
+| Q1 / Q3 | ₡98,376 / ₡548,457 |
+
+- La media es un 41% mayor que la mediana, y el histograma tiene una barra altísima a la izquierda y una cola larga a la derecha: **asimetría a la derecha**.
+- La desviación (₡383,640) es casi igual a la media: dispersión alta (desviación ÷ media = 0.98).
+
+**Hallazgo: efecto de mezcla.** En 8 de los 12 productos la mediana es *mayor* que la media, y la desviación ÷ media por producto es de entre 0.50 y 0.65. Dentro de cada producto los datos son bastante parejos. La cola a la derecha aparece solo al **juntar** productos de niveles muy distintos (Cosmetics deja unos ₡988,000 por venta y Fruits unos ₡12,000). Una venta "típica" no existe en el total: conviene segmentar antes de interpretar un promedio global.
+
+**Pregunta de entrevista que practiqué:** si un gerente concluye que una venta típica deja ₡391,000 (el promedio), la respuesta es que la típica es ₡277,000 (la mediana), que el promedio sube por pocas ventas muy grandes, y que el "típico" cambia entre productos.
+
+**Error mío que me enseñó algo:** al contar en cuántos productos la mediana superaba a la media, dijo 9 y eran 8. Hay que contar sobre la tabla y no de memoria.
+
+### Día 2 (Martes) — Distribuciones y outliers
+
+**Regla del IQR:**
+- **IQR = Q3 − Q1:** el ancho del tramo donde está el 50% central de los datos.
+- Un valor se marca como atípico si supera **Q3 + 1.5 × IQR** o queda por debajo de **Q1 − 1.5 × IQR**.
+- En `Total Profit`: Q1 = ₡98,376, Q3 = ₡548,457, IQR = ₡450,081, límite superior ≈ ₡1,223,578. El límite inferior es negativo, así que no hay outliers por abajo.
+
+```python
+q1 = df["Total Profit"].quantile(0.25)
+q3 = df["Total Profit"].quantile(0.75)
+iqr = q3 - q1
+limite_sup = q3 + 1.5 * iqr
+outliers = df[(df["Total Profit"] > limite_sup) | (df["Total Profit"] < q1 - 1.5 * iqr)]
+```
+
+**Hallazgos:**
+- Hay **55 ventas atípicas (5.5%)**, de solo tres productos: Cosmetics (31), Household (22) y Office Supplies (2).
+- En el boxplot **por producto** no aparece ningún outlier: esas ventas son normales para su producto (el 41% de las ventas de Cosmetics y el 29% de las de Household), y solo se ven raras al compararlas contra productos baratos como Fruits. Es el efecto de mezcla del lunes.
+- **Cosmetics no es el producto de mayor volumen** (75 ventas): el que más vende en cantidad es Beverages (101). Cosmetics tiene la mayor ganancia *por venta*. No hay que confundir volumen con valor.
+
+**Decisión sobre los outliers: no eliminarlos.**
+1. **No son errores:** cumplen `Total Revenue = Units Sold × Unit Price` igual que el resto (diferencia máxima de 9.3e-10, o sea redondeo de la computadora).
+2. **Pesan:** esas 55 ventas aportan el **20.6%** de toda la ganancia (≈₡80.7M). Eliminarlas habría subestimado el negocio.
+3. **Un outlier es una pregunta, no una sentencia.** Se decide en orden: ¿es un error?, ¿es real pero excepcional?, ¿distorsiona un indicador? (en ese caso se cambia el indicador o se segmenta, sin tocar los datos).
+
+**Diferencia entre outlier y error:** la regla del IQR solo mide qué tan lejos está un valor del resto del grupo, y no sabe si el dato es correcto. Un error es un dato incorrecto o imposible, y se detecta verificando el dato.
+
+---
+
+### Día 3 (Miércoles) — Correlación
+
+**El coeficiente r** va de -1 a +1: el signo da la dirección y el tamaño da la fuerza (por debajo de 0.3 es débil, y por encima de 0.7 es fuerte). Tres advertencias: **correlación no es causalidad**, solo mide relaciones en línea recta, y se distorsiona con outliers y con el efecto de mezcla.
+
+```python
+cols = ["Units Sold", "Unit Price", "Unit Cost", "Total Revenue", "Total Cost", "Total Profit"]
+corr = df[cols].corr()
+sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1)
+```
+(`Order ID` no se incluye: es un identificador, y correlacionarlo no significa nada.)
+
+**Lo que dice la matriz:**
+- `Units Sold` con precio y costo: **0.00**. Las unidades vendidas no dependen de lo caro que sea el producto.
+- Las correlaciones de 0.99 (precio con costo, ingreso con costo) y la de 0.88 (ingreso con ganancia) existen **por construcción** (`Profit = Revenue − Cost`, y el costo es proporcional al precio). Una relación que existe por definición no es un hallazgo.
+- Lo informativo: la ganancia se relaciona con unidades (0.59), precio (0.57) y costo (0.50), con intensidad parecida.
+
+**Lo que dicen los gráficos de dispersión:**
+- Unidades contra ganancia: no es una nube sino un **abanico de 12 rectas** que salen del origen, una por producto. La pendiente de cada recta es el margen por unidad (precio − costo).
+- Precio contra ganancia: **columnas verticales**, porque `Unit Price` tiene solo 12 valores distintos. Household y Office Supplies tienen el precio más alto pero no la mayor ganancia: importa el **margen** y no el precio.
+
+**Hallazgo: efecto de mezcla, tercera aparición.** La correlación general entre unidades y ganancia es 0.59, pero **dentro de cada uno de los 12 productos es 1.00**. La correlación mide qué tan bien una sola recta describe todos los puntos, y aquí hay 12 rectas con pendientes distintas (con 10,000 unidades, la ganancia va de ≈₡30,000 en Fruits a ≈₡1.7M en Cosmetics). Un resultado global puede ocultar una relación perfecta dentro de cada grupo, y en casos extremos hasta invertir el signo (paradoja de Simpson). **Regla práctica: segmentar antes de interpretar.**
+
+```python
+df.groupby("Item Type").apply(lambda g: g["Units Sold"].corr(g["Total Profit"]))
+```
+
+**Aprendizaje:** pedir la explicación en lugar de suponer. Cuando una conclusión no cierra, es mejor decir "no sé por qué" y preguntar que adivinar.
+
+### Día 4 (Jueves) — Regresión lineal simple
+
+**Idea:** la regresión ajusta la recta que mejor describe la relación entre dos variables (`ganancia = a + b × unidades`).
+- **Pendiente (b):** cuánto cambia la ganancia, en promedio, por cada unidad más.
+- **Intercepto (a):** el valor cuando x = 0 (no siempre tiene significado real).
+- **R²:** porcentaje de la variación de la ganancia que explica la recta. En regresión simple, R² = r².
+- **Límite:** se predice solo dentro del rango de los datos; fuera de ese rango se estaría extrapolando.
+
+```python
+from scipy import stats
+res = stats.linregress(df["Units Sold"], df["Total Profit"])
+res.slope, res.intercept, res.rvalue ** 2
+```
+
+**Regresión general (unidades → ganancia, 1,000 ventas):**
+- Pendiente: ₡[PENDIENTE_GENERAL] por unidad. Intercepto: ₡[INTERCEPTO_GENERAL].
+- **R² ≈ 0.35**: una sola recta explica apenas un tercio de la variación.
+- Predicción para 5,000 unidades: ₡[PREDICCION_5000], un número que no se parece a lo que realmente deja ningún producto.
+
+**Regresión dentro de cada producto (12 modelos):**
+- **R² = 1.00 en los 12.** La pendiente de cada recta es el **margen por unidad** (precio menos costo): Cosmetics ₡173.87, Household ₡165.73, Office Supplies ₡126.25, Baby Food ₡95.86 y Fruits ₡2.41.
+- Predicción para 5,000 unidades: Cosmetics ₡869,350 contra Fruits ₡12,050. Con el mismo volumen, la ganancia es 72 veces mayor.
+
+**Hallazgo: efecto de mezcla, cuarta aparición.** Dentro de cada producto la relación es perfecta (R² = 1.00), pero al mezclar los 12 el R² cae a 0.35, porque son 12 rectas con pendientes distintas y una sola recta no puede describirlas. Un modelo general sirve poco aquí: el modelo correcto es uno por producto, o uno que incluya el producto como variable.
+
+**Aprendizaje:** el R² de un modelo no dice solo qué tan "bueno" es: depende de si el grupo de datos es homogéneo. Antes de ajustar una recta, conviene mirar el gráfico de dispersión y preguntarse si hay una sola relación o varias mezcladas. Un modelo que se ajusta perfecto dentro de cada grupo no está explicando causas: el margen por unidad ya está definido por precio y costo.
