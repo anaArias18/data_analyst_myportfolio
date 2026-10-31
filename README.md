@@ -1312,3 +1312,54 @@ res.slope, res.intercept, res.rvalue ** 2
 **Hallazgo: efecto de mezcla, cuarta aparición.** Dentro de cada producto la relación es perfecta (R² = 1.00), pero al mezclar los 12 el R² cae a 0.35, porque son 12 rectas con pendientes distintas y una sola recta no puede describirlas. Un modelo general sirve poco aquí: el modelo correcto es uno por producto, o uno que incluya el producto como variable.
 
 **Aprendizaje:** el R² de un modelo no dice solo qué tan "bueno" es: depende de si el grupo de datos es homogéneo. Antes de ajustar una recta, conviene mirar el gráfico de dispersión y preguntarse si hay una sola relación o varias mezcladas. Un modelo que se ajusta perfecto dentro de cada grupo no está explicando causas: el margen por unidad ya está definido por precio y costo.
+
+### Día 5 (Viernes) — ¿Es real o es ruido? Prueba de hipótesis
+
+**Idea:** el dataset es una muestra, así que una diferencia puede ser real o casualidad.
+- **H0 (hipótesis nula):** no hay diferencia real entre los grupos.
+- **p-valor:** probabilidad de ver una diferencia tan grande o mayor *si H0 fuera cierta*. Con umbral 0.05: p menor indica evidencia de diferencia real; p mayor significa **no hay evidencia suficiente**, que no prueba que no haya diferencia.
+- **Prueba t de Welch** (`stats.ttest_ind(a, b, equal_var=False)`): compara dos promedios sin asumir la misma dispersión.
+- **Intervalo de confianza del 95%:** rango plausible de la diferencia verdadera. Si incluye el 0, no se puede descartar que no haya diferencia.
+- **Tamaño del efecto:** un resultado puede ser significativo y aun así ser pequeño.
+- **Corrección de Bonferroni:** con varias pruebas, el umbral se divide entre la cantidad de pruebas (0.05 / 7 ≈ 0.0071). Con 7 pruebas hay un 30% de probabilidad de que alguna salga significativa solo por azar (1 − 0.95⁷).
+
+**Resultado total (Online contra Offline, ganancia por venta):**
+
+| | Ventas | Promedio |
+|---|---|---|
+| Online | 480 | ₡381,907 |
+| Offline | 520 | ₡399,783 |
+
+Diferencia: -₡17,876, **p = 0.46**, intervalo del 95% de -₡65,437 a +₡29,685 (incluye el 0). No hay evidencia de diferencia real, y el promedio de Offline es ligeramente mayor.
+
+**Por región:**
+
+| Región | Ventas Online / Offline | Diferencia | p | p ajustado |
+|---|---|---|---|---|
+| Asia | 67 / 69 | -₡132,675 | 0.043 | 0.30 |
+| Sub-Saharan Africa | 127 / 135 | -₡58,897 | 0.172 | 1.00 |
+| Central America and the Caribbean | 38 / 61 | -₡116,354 | 0.183 | 1.00 |
+| Europe | 132 / 135 | +₡59,218 | 0.219 | 1.00 |
+| North America | 11 / 8 | +₡193,542 | 0.259 | 1.00 |
+| Australia and Oceania | 32 / 47 | +₡72,326 | 0.471 | 1.00 |
+| Middle East and North Africa | 73 / 65 | +₡24,483 | 0.703 | 1.00 |
+
+**Significativo no es lo mismo que importante:** Fruits tiene el p más bajo de todo (0.0026, Offline mayor que Online), pero la diferencia es de apenas ₡5,149 por venta y el producto aporta el 0.2% de la ganancia. Sus datos son muy parejos (desviación de ₡7,286), así que hasta una diferencia diminuta se vuelve detectable.
+
+**Error que me enseñó algo:** al principio tomé la diferencia de 40 ventas (480 contra 520) como la diferencia a probar, y lo que se prueba es la ganancia *por venta*.
+
+---
+
+### Día 6 (Sábado) — Mini-proyecto: ¿la ventaja del canal Online es real?
+
+**Pregunta:** revisar con estadística la conclusión de la Semana 5, donde había visto que Online superaba a Offline en 4 de 7 regiones.
+
+**Método:** prueba t de Welch por región, intervalos del 95% (gráfico de puntos con barras de error y línea en 0) y corrección de Bonferroni.
+
+**Conclusión:** la ventaja del canal Online que vi en la Semana 5 no se sostiene. En el total, Online promedia ₡17,876 menos que Offline (p = 0.46; intervalo de -₡65,437 a +₡29,685, que incluye el 0). Por región, solo Asia tiene un intervalo fuera del 0 (p = 0.043), pero tras corregir por 7 pruebas deja de ser significativo (p ajustado ≈ 0.30). North America, que había señalado como la señal más fuerte, tiene solo 19 ventas y p = 0.26. Con estos datos no hay evidencia de que un canal sea más rentable que otro.
+
+**Limitación:** muestra de 1,000 ventas y datos de práctica; con más datos podría aparecer una diferencia pequeña que acá no se detecta.
+
+**Corrección documentada:** en el análisis de la Semana 5 escribí que North America era "la señal más fuerte y consistente" a favor de Online. Con solo 19 ventas esa diferencia no se distingue del azar. Dejé una nota en ese README.
+
+**Aprendizaje:** una diferencia visible en la muestra no es un hallazgo hasta comprobar que supera el azar, y corregir una conclusión propia con mejores herramientas es parte del trabajo.
