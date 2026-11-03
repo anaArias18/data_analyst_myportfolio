@@ -1363,3 +1363,28 @@ Diferencia: -₡17,876, **p = 0.46**, intervalo del 95% de -₡65,437 a +₡29,6
 **Corrección documentada:** en el análisis de la Semana 5 escribí que North America era "la señal más fuerte y consistente" a favor de Online. Con solo 19 ventas esa diferencia no se distingue del azar. Dejé una nota en ese README.
 
 **Aprendizaje:** una diferencia visible en la muestra no es un hallazgo hasta comprobar que supera el azar, y corregir una conclusión propia con mejores herramientas es parte del trabajo.
+
+### Día 2 (Martes) — ETL desde una API e idempotencia
+
+**Pipeline:** *Extract* con `requests.get` y `raise_for_status()`, *Transform* (columnas en `snake_case`, `largo_titulo`, `fecha_carga`) y *Load* en SQLite.
+
+**El problema (a propósito):** con `if_exists="append"`, cada corrida suma las filas de nuevo. Corrí la celda 11 veces y cada `post_id` quedó repetido 11 veces (1,100 filas en vez de 100). Lo detecté con:
+```sql
+SELECT post_id, COUNT(*) FROM posts_ingenuo GROUP BY post_id HAVING COUNT(*) > 1
+```
+El fallo es silencioso: no hay ningún error, y los totales quedan inflados.
+
+**La solución: clave primaria + `INSERT OR REPLACE`:**
+```python
+con.execute("CREATE TABLE IF NOT EXISTS posts (post_id INTEGER PRIMARY KEY, ...)")
+con.executemany("INSERT OR REPLACE INTO posts VALUES (?,?,?,?,?,?)", filas)
+```
+Da **100 filas** sin importar cuántas veces se corra: el pipeline es **idempotente**. La garantía la da la clave primaria de la base, no el script. En la segunda corrida cambia `fecha_carga`: la fila se actualizó, no se duplicó.
+
+**`OR REPLACE` contra `OR IGNORE`:**
+- `OR REPLACE` actualiza la fila existente: sirve cuando la fuente puede corregir datos.
+- `OR IGNORE` conserva la fila vieja: sirve para registros históricos que no cambian. Si la fuente corrige un dato, se conserva el viejo sin avisar.
+
+**`raise_for_status()`:** corta el pipeline si la API responde con error. Sin eso, una API caída podría hacer que un `replace` sobrescriba datos buenos con una tabla vacía.
+
+**Aprendizaje:** un pipeline se corre varias veces, así que tiene que dar el mismo resultado en la corrida 1 que en la 11. Un error visible se corrige, uno silencioso se acumula.
