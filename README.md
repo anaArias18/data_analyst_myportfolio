@@ -1388,3 +1388,59 @@ Da **100 filas** sin importar cuántas veces se corra: el pipeline es **idempote
 **`raise_for_status()`:** corta el pipeline si la API responde con error. Sin eso, una API caída podría hacer que un `replace` sobrescriba datos buenos con una tabla vacía.
 
 **Aprendizaje:** un pipeline se corre varias veces, así que tiene que dar el mismo resultado en la corrida 1 que en la 11. Un error visible se corrige, uno silencioso se acumula.
+
+# Semana 10 (miércoles y jueves): modelo dimensional y calidad de datos
+
+## Pregunta
+¿Cómo convierto un CSV de ventas en un modelo en estrella reproducible (warehouse en SQLite) y cómo compruebo que los datos son confiables antes de cargarlos?
+
+## Dataset
+`1000 Sales Records.csv` (repositorio público HariVM/Analytics): 1,000 pedidos y 14 columnas, de 2010 a 26/07/2017. Ganancia total: ₡391,202,611.56.
+
+## Modelo (esquema en estrella)
+- **Grano:** una fila de `fact_ventas` = un pedido (`order_id`, único).
+- **Hechos:** `fact_ventas` (1,000 filas) con unidades, precio, costo, ingreso, costo total y ganancia.
+- **Dimensiones:** `dim_producto` (12), `dim_geografia` (185 países en 7 regiones), `dim_canal` (2), `dim_prioridad` (4), `dim_fecha` (2,812 días).
+- `dim_fecha` es de **rol doble**: la usan la fecha de pedido y la fecha de envío.
+
+## Decisiones de diseño
+- **Llaves sustituyentes** enteras en lugar de depender de textos.
+- **Estrella, no copo de nieve:** `region` y `country` viven juntas en `dim_geografia`.
+- **Esquema explícito** (PK y FK) y carga con `append`; con `replace` Pandas recrearía las tablas sin restricciones.
+- `PRAGMA foreign_keys = ON` en cada conexión (en SQLite viene apagado).
+- **Idempotente:** el script empieza con `DROP TABLE IF EXISTS`; correrlo dos veces da el mismo resultado.
+
+## Validaciones de calidad
+| Tipo | Chequeo |
+|---|---|
+| Completitud | nulos totales |
+| Unicidad | `order_id` y filas duplicadas |
+| Validez | unidades ≤ 0, precios o costos negativos, envío antes del pedido |
+| Consistencia | `units × price = revenue`, `revenue − cost = profit`, un país en una sola región |
+| Integridad referencial | hechos sin dimensión (LEFT JOIN ... IS NULL) y FK activas |
+
+**Resultado con los datos reales:** 0 problemas en todos los chequeos.
+**Prueba de que los chequeos funcionan:** con errores inyectados (3 nulos, 2 duplicados, 1 unidad negativa, 1 envío anterior al pedido) los detecta; el huérfano de integridad también.
+
+## Valores de control
+| Métrica | Valor |
+|---|---|
+| Ganancia Offline | 520 ventas, ₡207,887,276.63 |
+| Ganancia Online | 480 ventas, ₡183,315,334.93 |
+| Producto líder | Cosmetics, 75 ventas, ₡74,081,138.64 |
+| Días de envío | mín 0, prom 25.0, máx 50 |
+
+## Qué aprendí
+- Definir el **grano** primero evita sumar de más.
+- Un chequeo de rangos **no detecta nulos** (`NaN` compara como `False`); la completitud va primero.
+- Validar antes de cargar es mejor que corregir un dashboard después.
+
+## Limitaciones
+- Los chequeos de rango usan reglas de sentido común, no reglas de negocio de la empresa.
+- Es un dataset de práctica: 0 problemas reales; la utilidad de las validaciones se demostró con errores inyectados.
+- Los nombres de mes de `dim_fecha` salen en inglés (`month_name()`).
+
+## Archivos
+- `modelo_dimensional.py`: construye y carga el warehouse.
+- `validaciones.py`: chequeos de calidad y demos de errores.
+- `warehouse.db` (se genera con el script; no se versiona).
