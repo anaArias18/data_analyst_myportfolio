@@ -1,2 +1,6 @@
 pipeline.log
 *.db.tmp
+warehouse.db
+warehouse_test.db
+*.db.tmp
+sucio.csv
