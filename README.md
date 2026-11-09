@@ -1444,3 +1444,63 @@ Da **100 filas** sin importar cuántas veces se corra: el pipeline es **idempote
 - `modelo_dimensional.py`: construye y carga el warehouse.
 - `validaciones.py`: chequeos de calidad y demos de errores.
 - `warehouse.db` (se genera con el script; no se versiona).
+
+# Pipeline ETL de ventas: de CSV a modelo en estrella
+
+## Pregunta
+¿Cómo automatizo, de forma reproducible y segura, la carga de un CSV de ventas a un warehouse dimensional, garantizando que solo entren datos confiables?
+
+## Dataset
+`1000 Sales Records.csv` (repositorio público HariVM/Analytics): 1,000 pedidos, 14 columnas, de 2010 a 26/07/2017. Ganancia total: ₡391,202,611.56.
+
+## Arquitectura
+```
+CSV → extract → standardize → validate → transform → load → reconcile → warehouse.db
+                                 ↓ (si falla)
+                         DataQualityError: se detiene, no toca el warehouse
+```
+
+| Etapa | Qué hace |
+|---|---|
+| `extract` | Lee el CSV |
+| `standardize` | Columnas en `snake_case`, fechas con formato explícito (`%m/%d/%Y`) |
+| `validate` | 9 chequeos de calidad; si alguno falla, lanza `DataQualityError` |
+| `transform` | 5 dimensiones y 1 tabla de hechos, con llaves sustituyentes |
+| `load` | Escribe en un archivo temporal y lo reemplaza al final (`os.replace`) |
+| `reconcile` | Compara filas y ganancia total contra el origen y revisa llaves foráneas |
+
+## Modelo (esquema en estrella)
+- **Grano:** un pedido (`order_id`, único).
+- `fact_ventas` (1,000), `dim_producto` (12), `dim_geografia` (185), `dim_canal` (2), `dim_prioridad` (4), `dim_fecha` (2,812).
+- `dim_fecha` es de rol doble (fecha de pedido y fecha de envío).
+
+## Decisiones de diseño
+- **Validar antes de cargar:** datos malos nunca llegan al warehouse.
+- **Carga atómica:** si algo falla a mitad, el warehouse anterior queda intacto.
+- **Idempotente:** correrlo varias veces da el mismo resultado.
+- **Reconciliación:** el pipeline comprueba que no perdió ni duplicó datos.
+- **Logging** en `pipeline.log` y **códigos de salida**: 0 = OK, 1 = datos rechazados, 2 = error inesperado.
+
+## Cómo ejecutarlo
+```powershell
+python pipeline.py
+python pipeline.py --csv otro.csv --db otro.db
+```
+Cerrar DB Browser for SQLite antes de correrlo (en Windows bloquea el archivo).
+
+## Validación del pipeline
+| Prueba | Resultado |
+|---|---|
+| Datos reales | 0 problemas, ₡391,202,611.56, 1,000 filas |
+| Segunda corrida | Idéntica (idempotente) |
+| CSV con 1 nulo y 1 duplicado | Rechazado (código 1); no se crea el warehouse |
+| Warehouse existente + CSV sucio | Queda intacto |
+
+## Limitaciones
+- Las reglas de validación son de sentido común, no reglas de negocio de una empresa real.
+- Hace una carga completa (reemplaza todo), no incremental.
+- Corre manualmente; no está programado con un scheduler.
+- Dataset de práctica sin problemas reales: la utilidad de las validaciones se demostró con errores inyectados.
+
+## Próximos pasos
+Carga incremental, pruebas automatizadas con `pytest` y programar la ejecución.
