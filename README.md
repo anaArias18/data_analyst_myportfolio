@@ -1504,3 +1504,32 @@ Cerrar DB Browser for SQLite antes de correrlo (en Windows bloquea el archivo).
 
 ## Próximos pasos
 Carga incremental, pruebas automatizadas con `pytest` y programar la ejecución.
+
+# Qué explica la variación mensual del ingreso: pedidos, ticket o mezcla
+
+## Aviso sobre los datos
+Los datos de Northwind simplificado son **sintéticos**, generados para práctica. Los hallazgos no describen un negocio real; el objetivo es demostrar el proceso analítico completo.
+
+## Pregunta de negocio
+¿Qué explica la variación mensual del ingreso de 2026: más pedidos, un ticket promedio más alto, o un cambio en la mezcla de categorías y clientes?
+
+## Datos
+`northwind.db` con 5 tablas: Categorias (8), Productos (40), Clientes (20, en 7 países), Pedidos (120, del 2/1/2026 al 29/8/2026) y DetallesPedido (361). Ingreso total: ₡51,283,849.07; ticket promedio: ₡427,365.41.
+
+## Metodología (en construcción)
+1. Pipeline ETL a un modelo en estrella (SQLite)
+2. Validaciones de calidad y reconciliación
+3. Consultas SQL
+4. Análisis estadístico en Pandas
+5. Dashboard en Power BI
+
+## Hallazgos
+_Pendiente._
+
+## Limitaciones
+- Datos sintéticos.
+- Un solo año, sin comparación interanual.
+- Verificar si el último mes está completo antes de compararlo.
+
+## Estructura del repositorio
+_Pendiente._
