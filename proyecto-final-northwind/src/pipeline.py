@@ -96,14 +96,14 @@ def transform(t):
 
     p = ped.rename(columns={"pais": "pais_pedido"}).copy()
     p["fecha_key"] = pd.to_datetime(p["fecha_pedido"], format="%Y-%m-%d").dt.strftime("%Y%m%d").astype(int)
-    f = (det.merge(p[["pedido_id", "cliente_id", "fecha_key", "pais_pedido"]], on="pedido_id", how="left")
+    f = (det.merge(p[["pedido_id", "cliente_id", "fecha_key"]], on="pedido_id", how="left")
             .merge(pro[["producto_id", "precio_unitario"]], on="producto_id", how="left"))
     if len(f) != len(det):
         raise DataQualityError(f"Un merge cambió el número de filas: {len(det)} -> {len(f)}")
-    f["monto_linea"] = f["cantidad"] * f["precio_unitario"]
+    f["monto_linea"] = (f["cantidad"] * f["precio_unitario"]).round(2)
     fact = (f.rename(columns={"cliente_id": "cliente_key", "producto_id": "producto_key"})
-             [["detalle_id", "pedido_id", "fecha_key", "cliente_key", "producto_key", "pais_pedido",
-               "cantidad", "precio_unitario", "monto_linea"]])
+             [["detalle_id", "pedido_id", "fecha_key", "cliente_key", "producto_key",
+                     "cantidad", "precio_unitario", "monto_linea"]])
 
     tablas = {"dim_cliente": dim_cliente, "dim_producto": dim_producto, "dim_fecha": dim_fecha,
               "fact_ventas_lineas": fact}
@@ -125,7 +125,6 @@ CREATE TABLE fact_ventas_lineas (
     fecha_key INTEGER NOT NULL REFERENCES dim_fecha(fecha_key),
     cliente_key INTEGER NOT NULL REFERENCES dim_cliente(cliente_key),
     producto_key INTEGER NOT NULL REFERENCES dim_producto(producto_key),
-    pais_pedido TEXT,
     cantidad INTEGER NOT NULL, precio_unitario REAL NOT NULL, monto_linea REAL NOT NULL
 );
 """

@@ -1,0 +1,5 @@
+powerbi/datos/
+warehouse.db
+pipeline.log
+*.db.tmp
+data/export/

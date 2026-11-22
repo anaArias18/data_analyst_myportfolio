@@ -1,0 +1,3 @@
+bloque 1. 
+a) la columna calculada se realiza a partir del calculo fila por fila, y es estatica y una medida se calcula al momento siendo dinamica dependiendo de lo que seleccione el usuario y ticket promedio debe de ser una medida ya que es practicamente una operacion matematica que utiliza valores dinamicos dependiendo de la seleccion del usuario y los datos.
+b) se utiliza distinctcount porque cuenta los valores unicos de la columna ID ignorando las repeticiones asi se tiene un numero exacto y countrows falla ya que cuenta simplemente las filas en la tabla si un pedido tiene 3 productos por ejemplo 3 filas, dira que hubo 3 pedidos significando un error en los datos 
