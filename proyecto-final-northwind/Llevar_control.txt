@@ -47,3 +47,34 @@ Espana	21	7127738.35	13.9	339416.11
 Argentina	9	5620298.76	11.0	624477.64
 Costa Rica	8	2999120.66	5.8	374890.08
 Colombia	6	2040116.28	4.0	340019.38
+
+
+
+3. Lunes 16
+Respuesta. extract: extrae la informacion, validate: se valida la informacion se ve si hay nulos, duplicados, rangos etc y se reporta, transform crea ahora si construye las dimesiones y tablas de hechos, load lo que hace es crear un archivo temporal y este es remplazado al final, y validate va antes que load para identificar y evitar que al cargar los datos estos vayan corrompidos( corrigeme donde sea necesario y dame una explicacion amplia )
+
+--
+(1) marzo tiene más pedidos que junio, pero junio gana en ingreso: ¿qué palanca lo explica? R/ Puedo ver una diferencia en la columna de ticket, pero honestamente no se que palanca lo explica. 
+(2) ¿Por qué es engañoso comparar porcentajes entre meses con ≈15 pedidos? R/ esta no se responderla. 
+(3) ¿Qué cuidado hay que tener antes de decir que Argentina compra más (ticket alto con 9 pedidos)? R/ tampoco se responderla
+
+--
+done push
+
+4. Martes 17
+Creo que significa que si las medidas de ambos grupos fueran realmente iguales habria un 4% de probabilidad de observar una diferencia igual o mas extrema que la obtenida. Puede significar que la compatibilidad con la hipotesis nula y puede no significar que la probabilidad de que la hipotesis nula sea cierta (necesito que me orientes con una respuesta mejor y mas clara por favor)
+Y significativo no es lo mismo que importante ya que significativo depende mucho del tamaño de la muestra y varia, y la importancia depende ya del tamaño del efecto, los costos el contenido, el impacto verdadero. y un ejemplo que me dio google fue "Una diferencia estadísticamente significativa puede ser irrelevante en la práctica, mientras que un efecto grande y valioso puede no alcanzar p < 0.05 si la muestra es pequeña".
+
+1. pedidos (`52.5%`), porque aportan más de la mitad de la variación logarítmica del ingreso. Luego siguen precio por unidad (`17.3%`), líneas por pedido (`15.3%`) y unidades por línea (`15.0%`).
+
+
+2. no: el `52.5%` mide cuánto pesa el volumen de pedidos en la variación observada del ingreso, mientras que `p = 0.4644` indica que la dispersión mensual de pedidos es compatible con azar (y con solo 8 meses hay poca potencia estadística).
+
+
+3. si: en la muestra el ticket promedio de junio es mayor (+₡108,494.55) que el resto. **No afirmo**: que la diferencia real no sea cero (`p = 0.1674`, IC95% incluye el 0). Elegirlo *post hoc* tras ver el pico infla el riesgo de falsos positivos.
+
+
+4. no lo prueba: es solo una correlación descriptiva (`33.1%` y `37.2%` de unidades caras). Faltan controles como descuentos/precio real, tamaño del pedido, estacionalidad y tipo de cliente o producto.
+
+
+5. **Cliente** (nuevos vs. recurrentes o tamaño) y **producto/categoría**, además de **estructura del pedido** (líneas y unidades) y canal/región, para descartar un efecto de composición.
