@@ -1,85 +1,121 @@
-# ¿Qué explica la variación mensual del ingreso? Pipeline ETL, modelo en estrella, SQL, estadística y dashboard
+# ¿Qué explica la variación mensual del ingreso?
 
-> **Aviso:** los datos de Northwind simplificado son **sintéticos**, generados para práctica. Los hallazgos no describen un negocio real; el objetivo es demostrar el proceso analítico completo, de punta a punta.
+Pipeline ETL, modelo dimensional, SQL, análisis estadístico y dashboard en Power BI.
+
+> **Aviso:** los datos de Northwind simplificado son sintéticos y se generaron para práctica. Los hallazgos ilustran el método; no describen un negocio real.
 
 ## Pregunta de negocio
-¿Qué explica la variación mensual del ingreso de 2026: más pedidos, pedidos más grandes o un cambio en la mezcla de productos?
 
-## Resumen de hallazgos
-- El ingreso se descompone como **pedidos × líneas por pedido × unidades por línea × precio por unidad**. En los 8 meses analizados, los **pedidos** explican el 52.5% de la variación del ingreso, la **mezcla de productos** (precio por unidad) el 17.3%, las líneas por pedido el 15.3% y las unidades por línea el 15.0%.
-- **Junio** es el mejor mes (₡10,355,550.62) sin ser el de más pedidos (marzo: 21; junio: 20). Su desvío sobre el promedio se debe en 56.8% a más pedidos y en 35.0% a la mezcla de productos (precio por unidad de ₡15,456.05, el más alto del período).
-- **Cautela estadística:** la variación mensual del número de pedidos es compatible con el azar (χ² = 6.667, p = 0.46), y el ticket de junio no es significativamente mayor que el del resto (Welch p = 0.167).
-- **Chile** concentra el 30.0% del ingreso; sus 3 mejores clientes son chilenos.
+¿Qué explica la variación mensual del ingreso entre enero y agosto de 2026: más pedidos, pedidos más grandes o una mezcla distinta de productos?
+
+## Hallazgos principales
+
+- La identidad contable del ingreso es **pedidos × líneas por pedido × unidades por línea × precio por unidad**. En estos ocho meses, los pedidos representan el 52.5% de la variación observada; precio por unidad (asociado a la mezcla de productos), 17.3%; líneas por pedido, 15.3%; y unidades por línea, 15.0%.
+- Junio tuvo el mayor ingreso (**₡10,355,550.62**), aunque marzo tuvo más pedidos (21 frente a 20). En junio, el mayor número de pedidos y el precio por unidad más alto contribuyeron al resultado respecto al promedio del período.
+- La variación mensual de pedidos es compatible con el azar en esta muestra (χ² = 6.667, p = 0.46). El ticket de junio tampoco fue significativamente mayor que el del resto (Welch p = 0.167).
+- Chile concentra el 30.0% del ingreso; los tres clientes con mayor ingreso son chilenos.
+
+La descomposición describe cómo se distribuye la variación observada; **no demuestra causas**. Las pruebas estadísticas también deben leerse con cautela: hay solo ocho meses y junio se eligió después de observar que era el mes de mayor ingreso.
 
 ## Datos
-`northwind.db` con 5 tablas: Categorias (8), Productos (40), Clientes (20, en 7 países), Pedidos (120, del 2/1/2026 al 29/8/2026) y DetallesPedido (361 líneas). Ingreso total: **₡51,283,849.07**; ticket promedio: **₡427,365.41**.
 
-## Arquitectura
-```
-northwind.db → extract → validate → transform → load (archivo temporal + os.replace) → reconcile → warehouse.db
-                              ↓ (si falla)
-                      DataQualityError: se detiene sin tocar el warehouse
+El archivo `data/northwind.db` contiene cinco tablas: Categorias (8 filas), Productos (40), Clientes (20, en 7 países), Pedidos (120, del 2 de enero al 29 de agosto de 2026) y DetallesPedido (361 líneas). El ingreso total es **₡51,283,849.07** y el ticket promedio, **₡427,365.41**.
+
+## Pipeline y modelo dimensional
+
+```text
+data/northwind.db → extract → validate → transform → load temporal → reconcile → data/warehouse.db
+                                             si falla: se conserva el warehouse anterior
 ```
 
 | Etapa | Qué hace |
 |---|---|
-| `extract` | Lee las 5 tablas del origen (falla con un error claro si el archivo no existe) |
-| `validate` | 12 chequeos que detienen el pipeline (nulos, duplicados, rangos, fechas, huérfanos) y avisos que solo se reportan |
-| `transform` | Construye 3 dimensiones y la tabla de hechos |
-| `load` | Escribe en un archivo temporal y lo reemplaza al final: si algo falla, el warehouse anterior queda intacto |
-| `reconcile` | Compara líneas, pedidos e ingreso contra el origen con SQL independiente y revisa las llaves foráneas |
+| `extract` | Lee las cinco tablas de la base de origen y falla claramente si el archivo no existe. |
+| `validate` | Ejecuta 12 chequeos que rechazan datos con problemas; también reporta avisos que no bloquean el proceso. |
+| `transform` | Construye las dimensiones y la tabla de hechos del modelo en estrella. |
+| `load` | Escribe en un archivo temporal; publica el warehouse solo después de la reconciliación. |
+| `reconcile` | Compara líneas, pedidos e ingreso con el origen y revisa las llaves foráneas. |
 
-**Política de calidad:** los datos imposibles o que alterarían las cifras **frenan** el pipeline; lo discutible (por ejemplo, el país del pedido distinto al del cliente) se **reporta** y sigue. Con los datos reales hay 0 problemas.
+El grano de `fact_ventas_lineas` es una fila por línea de pedido (`detalle_id`). Las tablas de dimensión son `dim_cliente` (20 filas), `dim_producto` (40) y `dim_fecha` (240 días). El precio de cada producto se copia a sus líneas; como la fuente no tiene historial de precios, los cambios de precio unitario mensual reflejan la mezcla de productos y no cambios de precio a lo largo del tiempo.
 
-## Modelo (esquema en estrella)
-- **Grano:** una fila de `fact_ventas_lineas` = una línea de pedido (`detalle_id`, PK).
-- **Hechos:** `fact_ventas_lineas` (361): cantidad, precio unitario y monto de la línea.
-- **Dimensiones:** `dim_cliente` (20), `dim_producto` (40, con su categoría), `dim_fecha` (240 días).
-- El precio vive en `Productos` (uno por producto) y se copia a cada línea en la carga. Como no hay historial de precios, el precio por unidad solo cambia por la **mezcla** de productos.
+## SQL y análisis
 
-## Análisis
-- **SQL** (`sql/consultas.sql`): resumen mensual con las 4 palancas, ranking, variación contra el mes anterior y acumulado (`RANK`, `LAG`, `SUM() OVER`), categoría líder por mes (`ROW_NUMBER` con `PARTITION BY`), top de productos y concentración por país.
-- **Pandas y estadística** (`notebooks/analisis.ipynb`): descomposición en logaritmos, prueba de dispersión contra el azar, prueba t de Welch con intervalo de confianza y tamaño del efecto, y análisis de la mezcla de productos.
+- [`sql/Consultas.sql`](sql/Consultas.sql): resumen mensual, ranking, variación contra el mes anterior, acumulado, categoría líder, productos principales y concentración por país.
+- [`notebooks/analisis.ipynb`](notebooks/analisis.ipynb): descomposición logarítmica, prueba de dispersión, prueba t de Welch con intervalo de confianza y tamaño del efecto, y exploración de mezcla de productos.
 
-## Dashboard (Power BI)
-El archivo `.pbix` es binario, por eso se documenta con capturas.
+## Dashboard de Power BI
+
+El archivo editable es [`powerbi/dashboard_northwind.pbix`](powerbi/dashboard_northwind.pbix). Las capturas permiten revisar sus cuatro páginas sin abrir Power BI:
 
 | Página | Mensaje |
 |---|---|
-| ![Resumen](powerbi/img/01_resumen.png) | Junio fue el mejor mes del período |
-| ![Palancas](powerbi/img/02_palancas.png) | Los pedidos pesan más, y la mezcla de productos es la segunda palanca |
-| ![Mezcla](powerbi/img/03_mezcla.png) | Qué categorías y productos sostienen el ingreso |
-| ![Clientes y países](powerbi/img/04_clientes_paises.png) | Chile concentra el 30% del ingreso |
+| ![Resumen](powerbi/img/01_resumen.png) | Junio fue el mes de mayor ingreso del período. |
+| ![Palancas](powerbi/img/02_palancas.png) | Los pedidos representan la mayor parte de la variación observada. |
+| ![Mezcla](powerbi/img/03_mezcla.png) | Muestra el ingreso por categoría y producto. |
+| ![Clientes y países](powerbi/img/04_clientes_paises.png) | Chile concentra el 30% del ingreso. |
 
-## Cómo reproducirlo (Windows, PowerShell)
+El exportador genera los CSV que utiliza Power BI en `powerbi/datos/`.
+
+## Cómo reproducirlo en Windows
+
+Ejecuta estos pasos desde la raíz del repositorio. Los comandos entran primero a la carpeta del proyecto, donde las rutas relativas de los scripts están configuradas:
+
 ```powershell
-python -m venv data-analyst-env
-data-analyst-env\Scripts\Activate.ps1
-pip install pandas scipy matplotlib jupyter
-python src\pipeline.py          # genera data\warehouse.db
-python src\exportar_csv.py      # CSV para Power BI en data\export
-```
-Cerrar DB Browser for SQLite antes de correr el pipeline (en Windows bloquea el archivo).
+Set-Location .\proyecto-final-northwind
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install pandas numpy scipy matplotlib jupyter
 
-## Estructura del repositorio
+# Genera data/warehouse.db a partir de data/northwind.db
+python src\pipeline.py
+
+# Exporta las tablas y el resumen de palancas a powerbi/datos/
+python src\exportar_para_powerbi.py
+
+# Abre el notebook desde su carpeta para que encuentre ../data/warehouse.db
+Set-Location .\notebooks
+jupyter notebook analisis.ipynb
 ```
+
+Si PowerShell bloquea la activación, puedes invocar directamente los ejecutables del entorno. Ejecuta esto desde la carpeta del proyecto:
+
+```powershell
+.\.venv\Scripts\python.exe src\pipeline.py
+.\.venv\Scripts\python.exe src\exportar_para_powerbi.py
+Set-Location .\notebooks
+..\.venv\Scripts\jupyter.exe notebook analisis.ipynb
+```
+
+Para actualizar el dashboard, abre `powerbi/dashboard_northwind.pbix` en Power BI Desktop y verifica que sus consultas usen los CSV recién generados en `powerbi/datos/`.
+
+## Estructura del proyecto
+
+```text
 proyecto-final-northwind/
-├── README.md
-├── data/northwind.db          (fuente sintética; el warehouse se genera con el script)
-├── src/pipeline.py
-├── src/exportar_csv.py
-├── sql/consultas.sql
-├── notebooks/analisis.ipynb
-└── powerbi/ (dashboard .pbix y capturas en img/)
+├── data/
+│   └── northwind.db                 # Base de origen sintética
+├── src/
+│   ├── pipeline.py                  # ETL y reconciliación
+│   └── exportar_para_powerbi.py     # Exportación de tablas a CSV
+├── sql/
+│   └── Consultas.sql
+├── notebooks/
+│   └── analisis.ipynb
+└── powerbi/
+    ├── dashboard_northwind.pbix
+    ├── datos/                       # CSV generados para Power BI
+    └── img/                         # Capturas del dashboard
 ```
 
 ## Limitaciones
-- **Datos sintéticos** de un solo año (2/1/2026 al 29/8/2026), sin comparación interanual.
-- Hay pedidos en solo 91 de los 240 días y ≈15 pedidos por mes: las diferencias mensuales pueden ser ruido, así que no se afirman causas firmes.
-- Junio se eligió después de ver que era el mes más alto (análisis post hoc), lo que favorece encontrar diferencias aparentes.
-- La descomposición es contable: describe cuánto pesa cada palanca, no sus causas.
-- Cada producto tiene un único precio, por lo que no se puede atribuir cambios del ingreso a variaciones de precio.
-- Carga completa (no incremental) y ejecución manual.
 
-## Próximos pasos
-Pruebas automatizadas con `pytest`, carga incremental, programar la ejecución y repetir el análisis con un dataset real.
+- Datos sintéticos de un solo año, del 2 de enero al 29 de agosto de 2026; no permiten comparación interanual.
+- Hay pedidos en solo 91 de los 240 días y alrededor de 15 pedidos por mes, por lo que las diferencias mensuales pueden ser ruido.
+- Junio se seleccionó después de observar el mayor ingreso (análisis post hoc), lo que aumenta el riesgo de encontrar diferencias aparentes.
+- La descomposición es contable y descriptiva; no identifica causas.
+- La fuente asigna un solo precio por producto y no conserva historial de precios.
+- El pipeline hace una carga completa y se ejecuta manualmente.
+
+## Próximas mejoras
+
+Agregar pruebas automatizadas con `pytest`, una carga incremental y una ejecución programada; después, repetir el análisis con datos reales.
