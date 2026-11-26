@@ -204,8 +204,7 @@ def main(argv=None):
         t = extract(a.origen)
         validate(t)
         tablas = transform(t)
-        load(tablas, a.db)
-        reconcile(a.origen, a.db)
+        load(tablas, a.db, origen=a.origen)
         log.info("Pipeline terminado OK")
         return 0
     except DataQualityError as e:
