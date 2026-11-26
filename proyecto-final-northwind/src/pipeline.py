@@ -130,25 +130,42 @@ CREATE TABLE fact_ventas_lineas (
 """
 
 
-def load(tablas, db_path):
-    """Carga en un archivo temporal y lo reemplaza al final: si falla, el warehouse anterior queda intacto."""
+def load(tablas, db_path, origen=None):
+    """Carga y valida el archivo temporal antes de reemplazar el warehouse vigente."""
     tmp = db_path + ".tmp"
+
     if os.path.exists(tmp):
         os.remove(tmp)
+
     con = sqlite3.connect(tmp)
+
     try:
         con.execute("PRAGMA foreign_keys = ON")
         con.executescript(SCHEMA)
+
         for nombre, tabla in tablas.items():
             tabla.to_sql(nombre, con, if_exists="append", index=False)
+
         con.commit()
-    except Exception:
         con.close()
-        os.remove(tmp)
+
+        # Reconciliar ANTES de reemplazar el warehouse definitivo.
+        if origen is not None:
+            reconcile(origen, tmp)
+
+        # Solo publica el archivo si pasó todas las comprobaciones.
+        os.replace(tmp, db_path)
+        log.info("Load: warehouse validado y publicado en %s", db_path)
+
+    except Exception:
+        if con:
+            con.close()
+
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
         raise
-    con.close()
-    os.replace(tmp, db_path)
-    log.info("Load: warehouse escrito en %s", db_path)
+
 
 
 # ---------- RECONCILE (contra el ORIGEN, calculado con SQL independiente) ----------
